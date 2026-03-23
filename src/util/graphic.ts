@@ -887,6 +887,9 @@ function doUpdateZ(
         maxZ2 = mathMax((el as Displayable).z2 || 0, maxZ2);
     }
 
+    // NOTICE: Do not call any method that can set REDRAW_BIT,
+    // otherwise progressive rendering is broken.
+
     // always set z and zlevel if label/labelLine exists
     if (label) {
         label.z = z;

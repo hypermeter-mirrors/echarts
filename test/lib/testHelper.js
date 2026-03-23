@@ -1885,9 +1885,9 @@
             hostDOMEl = chartOrDomId.getDom();
         }
         var failErr;
-        function assert(cond) {
+        function assert(cond, msg) {
             if (!cond) {
-                throw new Error();
+                throw new Error(msg || 'printAssert error');
             }
         }
         try {
@@ -1948,6 +1948,7 @@
         var _pendingCbList = [];
         var _frameNumber = 0;
         var _mounted = false;
+        var _mask = null;
 
         function getRunBtnText() {
             return _running ? 'pause' : 'run';
@@ -1992,19 +1993,29 @@
         };
 
         function run() {
-            _running = true;
+            setRunning(true);
             nextFrame();
         }
 
         function pause() {
-            _running = false;
+            setRunning(false);
+        }
+
+        function setRunning(nextRunning) {
+            if (!_running && nextRunning) {
+                addOrRemoveMask(false);
+            }
+            else if (_running && !nextRunning) {
+                addOrRemoveMask(true);
+            }
+            _running = nextRunning;
         }
 
         function nextFrame() {
             opt.onFrame && opt.onFrame(_frameNumber);
 
             if (pauseAt != null && _frameNumber === pauseAt) {
-                _running = false;
+                setRunning(false);
                 pauseAt = null;
             }
             infoEl.innerHTML = 'Frame: ' + _frameNumber + ' ( ' + (_running ? 'Running' : 'Paused') + ' )';
@@ -2017,6 +2028,18 @@
                 pending[i]();
             }
             _frameNumber++;
+        }
+
+        function addOrRemoveMask(addOrRemove) {
+            if (addOrRemove && !_mask) {
+                _mask = document.createElement('div');
+                _mask.className = 'control-frame-mask';
+                document.body.appendChild(_mask);
+            }
+            else if (!addOrRemove && _mask) {
+                document.body.removeChild(_mask);
+                _mask = null;
+            }
         }
     }
 
@@ -2203,6 +2226,7 @@
      * @param {string} [opt.marginLeft=0] Spaces number for margin left of the entire text.
      * @param {string} [opt.lineBreak='\n']
      * @param {string} [opt.quotationMark="'"] "'" or '"'.
+     * @return {string}
      */
     var printObject = testHelper.printObject = function (obj, opt) {
         opt = typeof opt === 'string'
@@ -3062,6 +3086,141 @@
             }
         }
     }
+
+    /**
+     * Print layer info to chart internal zrender. (For visual testing).
+     */
+    // testHelper.printZRCanvasPainterLayersInfoForTest = function (echarts, chart) {
+    //     var zr = chart.getZr();
+
+    //     start();
+
+    //     function retrieveLayerInfo() {
+    //         // CAVEAT: Accessing internal data structure, may change.
+    //         // See `CanvasPainterInternal`
+    //         var painter = zr.painter;
+    //         var painterInternal = painter._i;
+
+    //         var layerStackInfo = echarts.util.clone(painterInternal.layerStack);
+
+    //         // Respect to the original content of `painterInternal.layers`.
+    //         var layersMapInfo = {};
+    //         for (var ii in painterInternal.layers) {
+    //             if (painterInternal.layers.hasOwnProperty(ii)) {
+    //                 layersMapInfo[ii] = {};
+    //                 var layersPerZLevel2 = painterInternal.layers[ii];
+    //                 for (var jj in layersPerZLevel2) {
+    //                     if (layersPerZLevel2.hasOwnProperty(jj)) {
+    //                         var layer = layersPerZLevel2[jj];
+    //                         // CAVEAT: Accessing internal data structure, may change.
+    //                         var cursorStack = layer.__cursorStack;
+    //                         var cursors = layer.__cursors;
+    //                         var cursorsInfo = {};
+    //                         cursors.each(function (cursor, key) {
+    //                             cursorsInfo[key] = echarts.util.clone(cursor);
+    //                         });
+    //                         layersMapInfo[ii][jj] = {
+    //                             layerId: layer.id,
+    //                             cursorStack: echarts.util.clone(cursorStack),
+    //                             cursors: cursorsInfo
+    //                         };
+    //                     }
+    //                 }
+    //             }
+    //         }
+
+    //         var hoverLayerInfo = painterInternal.hoverLayer
+    //             ? {layerId: painterInternal.hoverLayer.id}
+    //             : null;
+
+    //         return {
+    //             painterInternal: painterInternal,
+    //             layersMapInfo: layersMapInfo,
+    //             hoverLayerInfo: hoverLayerInfo,
+    //             layerStackInfo: layerStackInfo,
+    //         };
+    //     }
+
+    //     function ensureResultDOM() {
+    //         var hostDOMEl = chart.getDom();
+    //         var resultDom = chart.__zrLayerInfo;
+    //         if (!resultDom) {
+    //             resultDom = chart.__zrLayerInfo = document.createElement('pre');
+    //             hostDOMEl.appendChild(resultDom);
+    //             resultDom.style.cssText = [
+    //                 'position: absolute;',
+    //                 'top: 10px;',
+    //                 'left: 5px;',
+    //                 'pointer-events: none;',
+    //                 'font-size: 9px;',
+    //                 'z-index: 9999;',
+    //                 'color: #000;',
+    //                 'width: 220px;',
+    //                 'line-height: 1;',
+    //                 'font-family: Arial;',
+    //                 'background-color: rgba(255,255,255,0.5);',
+    //                 'border: 1px solid #000;',
+    //                 'padding: 2px;'
+    //             ].join('');
+    //         }
+
+    //         return resultDom;
+    //     }
+
+    //     function print1(allInfo, resultDom) {
+    //         console.log(allInfo.painterInternal); // For debug
+    //     }
+
+    //     function print2(allInfo, resultDom) {
+    //         var htmlArr = [
+    //             'chart.on("finished") <br>',
+    //             'layerStack: ' + testHelper.printObject(allInfo.layerStackInfo) + '<br>',
+    //             'layersMap: ' + testHelper.printObject(allInfo.layersMapInfo)
+    //         ];
+    //         // console.log(allInfo.layersMapInfo);
+    //         resultDom.innerHTML = htmlArr.join('');
+    //     }
+
+    //     function start() {
+    //         var resultDom = ensureResultDOM();
+    //         var lastRendered = [];
+
+    //         console.log('You can visit window.__info');
+
+    //         chart.on('rendered', function () {
+    //             var allInfo = retrieveLayerInfo();
+    //             // print1(allInfo, resultDom);
+    //             lastRendered.push({
+    //                 layerStackInfo: allInfo.layerStackInfo,
+    //                 hoverLayerInfo: allInfo.hoverLayerInfo,
+    //                 layersMapInfo: allInfo.layersMapInfo
+    //             });
+    //             // console.log('rendered');
+    //         });
+    //         chart.on('finished', function () {
+    //             // console.log('chart.on("finished")');
+    //             var allInfo = retrieveLayerInfo();
+    //             print2(allInfo, resultDom);
+
+    //             // console.log(lastRendered);
+    //             // console.log(allInfo.painterInternal);
+    //             window.__info = lastRendered.slice();
+
+    //             lastRendered.length = 0;
+    //         });
+    //     }
+    // };
+
+    testHelper.getLayerDom = function (chart, zlevel, zlevel2) {
+        var zr = chart.getZr();
+        var painter = zr.painter;
+        // CAVEAT: Accessing internal data structure, may change.
+        // See `CanvasPainterInternal`
+        var painterInternal = painter._i;
+        var layersPerZLevel = painterInternal.layers[zlevel];
+        var layer = layersPerZLevel && layersPerZLevel[zlevel2];
+        return layer ? layer.dom : null;
+    };
 
     context.testHelper = testHelper;
 

@@ -108,6 +108,7 @@ import {
 import type SeriesModel from '../../model/Series';
 import { getCustomSeries } from './customSeriesRegister';
 import tokens from '../../visual/tokens';
+import { getIncrementalId } from '../../util/model';
 
 
 const EMPHASIS = 'emphasis' as const;
@@ -289,7 +290,7 @@ export default class CustomChartView extends ChartView {
 
         function setIncrementalAndHoverLayer(el: Displayable) {
             if (!el.isGroup) {
-                el.incremental = true;
+                el.incremental = getIncrementalId(customSeries);
                 el.ensureState('emphasis').hoverLayer = graphicUtil.HOVER_LAYER_FOR_INCREMENTAL;
             }
         }

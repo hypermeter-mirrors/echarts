@@ -24,11 +24,12 @@ import * as lineContain from 'zrender/src/contain/line';
 import * as quadraticContain from 'zrender/src/contain/quadratic';
 import { PathProps } from 'zrender/src/graphic/Path';
 import SeriesData from '../../data/SeriesData';
-import { StageHandlerProgressParams, LineStyleOption, ColorString } from '../../util/types';
+import { StageHandlerProgressParams, LineStyleOption, ColorString, SeriesOption } from '../../util/types';
 import Model from '../../model/Model';
 import { getECData } from '../../util/innerStore';
 import Element from 'zrender/src/Element';
 import tokens from '../../visual/tokens';
+import Displayable, { BeforeBrushParam } from 'zrender/src/graphic/Displayable';
 
 class LargeLinesPathShape {
     polyline = false;
@@ -71,6 +72,12 @@ class LargeLinesPath extends graphic.Path {
     reset() {
         this.notClear = false;
         this._off = 0;
+    }
+
+    beforeBrush(param: BeforeBrushParam) {
+        if (param && !param.contentRetained) {
+            this.reset();
+        }
     }
 
     getDefaultStyle() {
@@ -238,18 +245,16 @@ class LargeLineDraw {
         this._setCommon(lineEl, data);
     };
 
-    /**
-     * @override
-     */
     incrementalPrepareUpdate(data: LargeLinesData) {
         this.group.removeAll();
         this._clear();
     };
 
-    /**
-     * @override
-     */
-    incrementalUpdate(taskParams: StageHandlerProgressParams, data: LargeLinesData) {
+    incrementalUpdate(
+        taskParams: StageHandlerProgressParams,
+        data: LargeLinesData,
+        incrementalId: Displayable['incremental']
+    ) {
         const lastAdded = this._newAdded[0];
         const linePoints = data.getLayout('linesPoints');
 
@@ -272,7 +277,7 @@ class LargeLineDraw {
             this._newAdded = [];
 
             const lineEl = this._create();
-            lineEl.incremental = true;
+            lineEl.incremental = incrementalId;
             lineEl.setShape({
                 segs: linePoints
             });

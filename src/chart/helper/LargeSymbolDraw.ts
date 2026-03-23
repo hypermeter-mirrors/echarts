@@ -31,6 +31,7 @@ import { StageHandlerProgressParams } from '../../util/types';
 import { CoordinateSystemClipArea } from '../../coord/CoordinateSystem';
 import { getECData } from '../../util/innerStore';
 import Element from 'zrender/src/Element';
+import Displayable, { BeforeBrushParam } from 'zrender/src/graphic/Displayable';
 
 const BOOST_SIZE_THRESHOLD = 4;
 
@@ -78,6 +79,12 @@ class LargeSymbolPath extends graphic.Path<LargeSymbolPathProps> {
     reset() {
         this.notClear = false;
         this._off = 0;
+    }
+
+    beforeBrush(param: BeforeBrushParam) {
+        if (param && !param.contentRetained) {
+            this.reset();
+        }
     }
 
     buildPath(path: PathProxy | CanvasRenderingContext2D, shape: LargeSymbolPathShape) {
@@ -276,7 +283,12 @@ class LargeSymbolDraw {
         this._clear();
     }
 
-    incrementalUpdate(taskParams: StageHandlerProgressParams, data: SeriesData, opt: UpdateOpt) {
+    incrementalUpdate(
+        taskParams: StageHandlerProgressParams,
+        data: SeriesData<SeriesModel>,
+        incrementalId: Displayable['incremental'],
+        opt: UpdateOpt
+    ) {
         const lastAdded = this._newAdded[0];
         const points = data.getLayout('points');
         const oldPoints = lastAdded && lastAdded.shape.points;
@@ -299,7 +311,7 @@ class LargeSymbolDraw {
             const symbolEl = this._create();
             symbolEl.startIndex = taskParams.start;
             symbolEl.endIndex = taskParams.end;
-            symbolEl.incremental = true;
+            symbolEl.incremental = incrementalId;
             symbolEl.setShape({
                 points
             });

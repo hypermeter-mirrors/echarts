@@ -35,6 +35,7 @@ import SeriesData from '../../data/SeriesData';
 import type Polar from '../../coord/polar/Polar';
 import type Cartesian2D from '../../coord/cartesian/Cartesian2D';
 import Element from 'zrender/src/Element';
+import { getIncrementalId } from '../../util/model';
 
 class LinesView extends ChartView {
 
@@ -118,7 +119,7 @@ class LinesView extends ChartView {
         seriesModel: LinesSeriesModel,
         ecModel: GlobalModel
     ) {
-        this._lineDraw.incrementalUpdate(taskParams, seriesModel.getData() as any);
+        this._lineDraw.incrementalUpdate(taskParams, seriesModel.getData() as any, getIncrementalId(seriesModel));
 
         this._finished = taskParams.end === seriesModel.getData().count();
     }

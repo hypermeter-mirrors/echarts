@@ -29,6 +29,7 @@ import SeriesData from '../../data/SeriesData';
 import { TaskProgressParams } from '../../core/task';
 import type { StageHandlerProgressExecutor } from '../../util/types';
 import Element from 'zrender/src/Element';
+import { getIncrementalId } from '../../util/model';
 
 class ScatterView extends ChartView {
     static readonly type = 'scatter';
@@ -66,7 +67,7 @@ class ScatterView extends ChartView {
     }
 
     incrementalRender(taskParams: TaskProgressParams, seriesModel: ScatterSeriesModel, ecModel: GlobalModel) {
-        this._symbolDraw.incrementalUpdate(taskParams, seriesModel.getData(), {
+        this._symbolDraw.incrementalUpdate(taskParams, seriesModel.getData(), getIncrementalId(seriesModel), {
             clipShape: this._getClipShape(seriesModel)
         });
 

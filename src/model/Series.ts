@@ -46,7 +46,7 @@ import {createTask} from '../core/task';
 import GlobalModel from './Global';
 import { CoordinateSystem } from '../coord/CoordinateSystem';
 import { ExtendableConstructor, mountExtend, Constructor } from '../util/clazz';
-import { PipelineContext, SeriesTaskContext, GeneralTask, OverallTask, SeriesTask } from '../core/Scheduler';
+import { PipelineContext, SeriesTaskContext, GeneralTask, OverallTask, SeriesTask, Pipeline } from '../core/Scheduler';
 import LegendVisualProvider from '../visual/LegendVisualProvider';
 import SeriesData from '../data/SeriesData';
 import Axis from '../coord/Axis';
@@ -59,6 +59,7 @@ import {ECSymbol} from '../util/symbol';
 import {Group} from '../util/graphic';
 import {LegendIconParams} from '../component/legend/LegendModel';
 import {dimPermutations} from '../component/marker/MarkAreaView';
+import type ChartView from '../view/Chart';
 
 const inner = modelUtil.makeInner<{
     data: SeriesData
@@ -72,12 +73,21 @@ function getSelectionKey(data: SeriesData, dataIndex: number): string {
 
 export const SERIES_UNIVERSAL_TRANSITION_PROP = '__universalTransitionEnabled';
 
+/**
+ * Implement it only if needed.
+ */
 interface SeriesModel {
-    /**
-     * Convenient for override in extended class.
-     * Implement it if needed.
-     */
+
     preventIncremental(): boolean;
+
+    /**
+     * (Use `__` prefix to avoid conflicts with possible subclasses)
+     */
+    __preparePipelineContext(
+        view: ChartView,
+        pipeline: Pick<Pipeline, 'progressiveEnabled' | 'threshold'>
+    ): PipelineContext;
+
     /**
      * See tooltip.
      * Implement it if needed.
@@ -154,6 +164,7 @@ class SeriesModel<Opt extends SeriesOption = SeriesOption> extends ComponentMode
     // Injected outside
     dataTask: SeriesTask;
     // Injected outside
+    // CAUTION: Can read from it; but never write to it!
     pipelineContext: PipelineContext;
 
     // ---------------------------------------

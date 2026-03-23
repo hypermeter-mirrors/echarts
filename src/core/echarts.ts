@@ -140,6 +140,7 @@ import {
     registerCustomSeries as registerCustom
 } from '../chart/custom/customSeriesRegister';
 import { resetCachePerECFullUpdate, resetCachePerECPrepare } from '../util/cycleCache';
+import globalDefault from '../model/globalDefault';
 
 declare let global: any;
 
@@ -638,9 +639,13 @@ class ECharts extends Eventful<ECEventDefinition> {
             let remainTime = TEST_FRAME_REMAIN_TIME;
             const ecModel = this._model;
             const api = this._api;
-            scheduler.unfinished = false;
+
             do {
-                const startTime = +new Date();
+                // Reset to false per iteration. Otherwise the last zr.flush
+                // can not be triggered and 'finish' event can not be triggered.
+                scheduler.unfinished = false;
+
+                const startTime = platformApi.getTime();
 
                 scheduler.performSeriesTasks(ecModel);
 
@@ -660,7 +665,7 @@ class ECharts extends Eventful<ECEventDefinition> {
 
                 renderSeries(this, this._model, api, 'remain', {});
 
-                remainTime -= (+new Date() - startTime);
+                remainTime -= (platformApi.getTime() - startTime);
             }
             while (remainTime > 0 && scheduler.unfinished);
 
@@ -1627,7 +1632,6 @@ class ECharts extends Eventful<ECEventDefinition> {
         // 'category' axis or by `xxxAxis.min/max` for other axes). Otherwise, if
         // the extent keep changing while `appendData`, the location of the painted
         // graphic elements have to be changed frequently.
-
         this._scheduler.unfinished = true;
 
         this.getZr().wakeUp();
@@ -2256,10 +2260,9 @@ class ECharts extends Eventful<ECEventDefinition> {
             zr.on('rendered', function (params: RenderedEventParam) {
 
                 ecIns.trigger('rendered', params);
-
                 // The `finished` event should not be triggered repeatedly,
                 // so it should only be triggered when rendering indeed happens
-                // in zrender. (Consider the case that dipatchAction is keep
+                // in zrender. (Consider the case that dispatchAction is keep
                 // triggering when mouse move).
                 if (
                     // Although zr is dirty if initial animation is not finished
@@ -2558,7 +2561,9 @@ class ECharts extends Eventful<ECEventDefinition> {
             });
 
             const inner = ecInner(ecIns);
-            const shouldUseHoverLayer = elCount > ecModel.get('hoverLayerThreshold') && !env.node && !env.worker;
+            const shouldUseHoverLayer = elCount > retrieve2(
+                ecModel.get('hoverLayerThreshold'), globalDefault.hoverLayerThreshold
+            ) && !env.node && !env.worker;
 
             if (inner.usingTHL || shouldUseHoverLayer) {
                 ecModel.eachSeries(function (seriesModel) {
@@ -2568,6 +2573,8 @@ class ECharts extends Eventful<ECEventDefinition> {
                     const chartView = ecIns._chartsMap[seriesModel.__viewId];
                     if (chartView.__alive) {
                         chartView.eachRendered((el: ECElement) => {
+                            // NOTICE: Do not call any method that can set REDRAW_BIT,
+                            // otherwise progressive rendering is broken.
                             const emphasis = el.states.emphasis;
                             if (emphasis && emphasis.hoverLayer !== graphic.HOVER_LAYER_FOR_INCREMENTAL) {
                                 emphasis.hoverLayer = shouldUseHoverLayer
@@ -2587,6 +2594,9 @@ class ECharts extends Eventful<ECEventDefinition> {
         function updateBlend(seriesModel: SeriesModel, chartView: ChartView): void {
             const blendMode = seriesModel.get('blendMode') || null;
             chartView.eachRendered((el: Displayable) => {
+                // NOTICE: Do not call any method that can set REDRAW_BIT,
+                // otherwise progressive rendering is broken.
+
                 // FIXME marker and other components
                 if (!el.isGroup) {
                     // DON'T mark the element dirty. In case element is incremental and don't want to rerender.

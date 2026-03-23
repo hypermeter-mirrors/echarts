@@ -282,7 +282,12 @@ class SymbolDraw {
     /**
      * Update symbols draw by new data
      */
-    incrementalUpdate(taskParams: StageHandlerProgressParams, data: ListForSymbolDraw, opt?: UpdateOpt) {
+    incrementalUpdate(
+        taskParams: StageHandlerProgressParams,
+        data: ListForSymbolDraw,
+        incrementalId: Displayable['incremental'],
+        opt?: UpdateOpt
+    ) {
 
         // Clear
         this._progressiveEls = [];
@@ -291,7 +296,7 @@ class SymbolDraw {
 
         function updateIncrementalAndHover(el: Displayable) {
             if (!el.isGroup) {
-                el.incremental = true;
+                el.incremental = incrementalId;
                 el.ensureState('emphasis').hoverLayer = graphic.HOVER_LAYER_FOR_INCREMENTAL;
             }
         }

@@ -21,11 +21,14 @@
 
     var _layersInfoMap = {};
     var _recordContainer;
-    var CELL_MAX = 160;
+    var CELL_MAX = 90;
 
 
     if (window.Canteen) {
         window.Canteen.globals.STACK_SIZE = 100000000;
+    }
+    else {
+        console.log('canteen.js is not imported');
     }
 
     window.printIncrementalOnFrame = function (chart, frameNumber, recordContainer) {
@@ -47,7 +50,7 @@
     function initContainer() {
         _recordContainer.innerHTML = [
             '<div class="print-incremental-record-title">',
-                'In the "incremental layer", each frame: <br>',
+                'In the "incremental layer", each frame: ',
                 'canvas instruction count (<span class="print-incremental-cmd-count">red number</span>) should be the same:',
             '</div>'
         ].join('');
@@ -64,6 +67,7 @@
             };
             var incrementalText = layer.incremental ? ' (incremental)' : '';
             layerInfo.recordLineTitle.innerHTML = 'layer ' + zlevel + incrementalText + ': <br>';
+            layerInfo.recordLineTitle.className = 'print-incremental-record-line-title';
             layerInfo.recordLineContainer.className = 'print-incremental-record-line';
             _recordContainer.appendChild(layerInfo.recordLineTitle);
             _recordContainer.appendChild(layerInfo.recordLineContainer);
@@ -89,12 +93,16 @@
     }
 
     function getStackLength(ctx) {
-        return ctx.stack().length;
+        return ctx.stack ? ctx.stack().length : 0;
     }
 
     function clearStack(ctx) {
-        window.printIncrementalLastStack = ctx.stack().slice();
-        ctx.clear();
+        if (ctx.stack) {
+            window.printIncrementalLastStack = ctx.stack().slice();
+        }
+        if (ctx.clear) {
+            ctx.clear();
+        }
     }
 
 })();

@@ -44,7 +44,7 @@ under the License.
         var chart;
 
         testHelper.controlFrame({
-            pauseAt: 120,
+            pauseAt: 30,
             onFrame: function (frameNumber) {
                 window.printIncrementalOnFrame(chart, frameNumber, recordContainer);
             }
@@ -99,7 +99,7 @@ under the License.
 
             chart = testHelper.create(echarts, 'main0', {
                 title: [
-                    'Click **run** and check the printed records:',
+                    'Click **run**',
                 ],
                 option: option,
                 height: 450,

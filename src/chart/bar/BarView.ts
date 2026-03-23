@@ -69,6 +69,7 @@ import {createSectorCalculateTextPosition, SectorTextPosition, setSectorTextRota
 import { saveOldStyle } from '../../animation/basicTransition';
 import Element from 'zrender/src/Element';
 import { getSectorCornerRadius } from '../helper/sectorHelper';
+import { getIncrementalId } from '../../util/model';
 
 const mathMax = Math.max;
 const mathMin = Math.min;
@@ -173,7 +174,7 @@ class BarView extends ChartView {
     }
 
     incrementalRender(params: StageHandlerProgressParams, seriesModel: BarSeriesModel): void {
-        // Reset
+        // Reset for eachRendered
         this._progressiveEls = [];
         // Do not support progressive in normal mode.
         this._incrementalRenderLarge(params, seriesModel);
@@ -1169,13 +1170,14 @@ function createLarge(
 
     const backgroundModel = seriesModel.getModel('backgroundStyle');
     const bgPoints = data.getLayout('largeBackgroundPoints');
+    const incrementalId = incremental ? getIncrementalId(seriesModel) : 0;
 
     if (bgPoints) {
         const bgEl = new LargePath({
             shape: {
                 points: bgPoints
             },
-            incremental: !!incremental,
+            incremental: incrementalId,
             silent: true,
             z2: 0
         });
@@ -1190,7 +1192,7 @@ function createLarge(
 
     const el = new LargePath({
         shape: {points: data.getLayout('largePoints')},
-        incremental: !!incremental,
+        incremental: incrementalId,
         ignoreCoarsePointer: true,
         z2: 1
     });

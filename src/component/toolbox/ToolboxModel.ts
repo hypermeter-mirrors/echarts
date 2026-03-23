@@ -31,7 +31,6 @@ import {
     Dictionary,
     ComponentOnCalendarOptionMixin,
     ComponentOnMatrixOptionMixin,
-    NullUndefined
 } from '../../util/types';
 import tokens from '../../visual/tokens';
 import type GlobalModel from '../../model/Global';

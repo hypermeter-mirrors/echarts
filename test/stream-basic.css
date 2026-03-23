@@ -19,8 +19,8 @@
 */
 
 .print-incremental-record-title {
-    margin: 10px;
-    font-size: 18px;
+    margin: 5px 10px;
+    font-size: 14px;
     font-weight: 700;
 }
 .print-incremental-record-title .print-incremental-cmd-count {
@@ -30,10 +30,17 @@
     margin: 5px 20px;
 }
 .print-incremental-record-line {
-    margin: 10px 10px;
+    margin: 5px 10px;
     font-size: 10px;
+    line-height: 1;
+}
+.print-incremental-record-line-title {
+    font-size: 10px;
+    font-weight: bold;
+    line-height: 1.2;
 }
 .print-incremental-record-line .print-incremental-cmd-count {
     color: red;
-    font-size: 12px;
+    font-size: 10px;
+    margin-right: 3px;
 }

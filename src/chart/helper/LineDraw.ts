@@ -165,13 +165,17 @@ class LineDraw {
         this.group.removeAll();
     };
 
-    incrementalUpdate(taskParams: StageHandlerProgressParams, lineData: ListForLineDraw) {
+    incrementalUpdate(
+        taskParams: StageHandlerProgressParams,
+        lineData: ListForLineDraw,
+        incrementalId: Displayable['incremental']
+    ) {
 
         this._progressiveEls = [];
 
         function updateIncrementalAndHover(el: Displayable) {
             if (!el.isGroup && !isEffectObject(el)) {
-                el.incremental = true;
+                el.incremental = incrementalId;
                 el.ensureState('emphasis').hoverLayer = graphic.HOVER_LAYER_FOR_INCREMENTAL;
             }
         }

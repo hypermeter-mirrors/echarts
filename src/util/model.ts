@@ -30,6 +30,7 @@ import {
     isStringSafe,
     isNumber,
     hasOwn,
+    retrieve2,
 } from 'zrender/src/core/util';
 import env from 'zrender/src/core/env';
 import GlobalModel from '../model/Global';
@@ -48,14 +49,19 @@ import {
     OptionName,
     InterpolatableValue,
     NullUndefined,
+    SeriesOption,
+    SeriesLargeOptionMixin,
 } from './types';
 import { Dictionary } from 'zrender/src/core/types';
-import SeriesModel from '../model/Series';
-import CartesianAxisModel from '../coord/cartesian/AxisModel';
+import type SeriesModel from '../model/Series';
+import type CartesianAxisModel from '../coord/cartesian/AxisModel';
 import type GridModel from '../coord/cartesian/GridModel';
 import { isNumeric, getRandomIdBase, getPrecision, round } from './number';
 import { error, warn } from './log';
 import type Model from '../model/Model';
+import type Displayable from 'zrender/src/graphic/Displayable';
+import type ChartView from '../view/Chart';
+import type { Pipeline, PipelineContext } from '../core/Scheduler';
 
 function interpolateNumber(p0: number, p1: number, percent: number): number {
     return (p1 - p0) * percent + p0;
@@ -1328,4 +1334,33 @@ export function removeDuplicatesGetKeyFromItemItself<TValue extends (string | nu
         assert(item != null);
     }
     return item + '';
+}
+
+export function getIncrementalId(
+    seriesModel: SeriesModel,
+    useIncremental?: boolean
+): Displayable['incremental'] {
+    // 0 means disable incremental.
+    // 1 is preserved for backward compatibility.
+    return retrieve2(useIncremental, true)
+        ? seriesModel.seriesIndex + 2
+        : 0;
+}
+
+export function preparePipelineContext(
+    seriesModel: SeriesModel<SeriesOption & SeriesLargeOptionMixin>,
+    view: ChartView,
+    pipeline: Pick<Pipeline, 'progressiveEnabled' | 'threshold'>,
+): PipelineContext {
+    const dataLen = seriesModel.getData().count();
+    return {
+        progressiveRender: pipeline.progressiveEnabled
+            && view.incrementalPrepareRender
+            && dataLen >= pipeline.threshold,
+        large: seriesModel.get('large') && dataLen >= seriesModel.get('largeThreshold'),
+        // TODO: modDataCount should not updated if `appendData`, otherwise cause whole repaint.
+        // see `test/candlestick-large3.html`
+        modDataCount: seriesModel.get('progressiveChunkMode') === 'mod'
+            ? seriesModel.getData().count() : null,
+    };
 }

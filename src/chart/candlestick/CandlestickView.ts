@@ -37,6 +37,7 @@ import { saveOldStyle } from '../../animation/basicTransition';
 import Element from 'zrender/src/Element';
 import { getBorderColor, getColor } from './candlestickVisual';
 import { resolveNormalBoxClipping } from '../helper/whiskerBoxCommon';
+import { getIncrementalId } from '../../util/model';
 
 const SKIP_PROPS = ['color', 'borderColor'] as const;
 
@@ -209,7 +210,7 @@ class CandlestickView extends ChartView {
             const el = createNormalBox(itemLayout, dataIndex, transPointDim);
             setBoxCommon(el, data, dataIndex, isSimpleBox);
 
-            el.incremental = true;
+            el.incremental = getIncrementalId(seriesModel);
             this.group.add(el);
 
             this._progressiveEls.push(el);
@@ -407,12 +408,13 @@ function createLarge(
     setLargeStyle(0, elDoji, seriesModel, data);
 
     if (incremental) {
-        elP.incremental = true;
-        elN.incremental = true;
+        elP.incremental = getIncrementalId(seriesModel);
+        elN.incremental = getIncrementalId(seriesModel);
+        elDoji.incremental = getIncrementalId(seriesModel);
     }
 
     if (progressiveEls) {
-        progressiveEls.push(elP, elN);
+        progressiveEls.push(elP, elN, elDoji);
     }
 }
 
