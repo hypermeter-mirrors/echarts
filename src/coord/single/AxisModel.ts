@@ -30,8 +30,17 @@ import { AxisBaseModel } from '../AxisBaseModel';
 import { mixin } from 'zrender/src/core/util';
 
 
-export const COORD_SYS_TYPE_SINGLE_AXIS = 'singleAxis';
-export const COMPONENT_TYPE_SINGLE_AXIS = COORD_SYS_TYPE_SINGLE_AXIS;
+// PENDING: For historical reason,
+//  in ec option:
+//    It can only declare as `series:{coordinateSystem: "singleAxis", ...}`
+//    rather than 'single'. Therefore every `.get('coordinateSystem')` must
+//    match "singleAxis". (See `referHelper.ts`)
+//    And the component name can only be `singleAxis: {...}`.
+//  But the internal convention uses 'singe' as coordinate system name
+//  and dimension name.
+export const COORD_SYS_TYPE_SINGLE = 'single';
+export const COORD_SYS_TYPE_SINGLE_AXIS_COMPATIBLE = 'singleAxis';
+export const COMPONENT_TYPE_SINGLE_AXIS = 'singleAxis';
 
 export type SingleAxisPosition = 'top' | 'bottom' | 'left' | 'right';
 

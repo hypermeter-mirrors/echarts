@@ -28,7 +28,7 @@ import { CoordinateSystem, CoordinateSystemMaster } from '../CoordinateSystem';
 import GlobalModel from '../../model/Global';
 import ExtensionAPI from '../../core/ExtensionAPI';
 import BoundingRect from 'zrender/src/core/BoundingRect';
-import SingleAxisModel, { COORD_SYS_TYPE_SINGLE_AXIS } from './AxisModel';
+import SingleAxisModel, { COORD_SYS_TYPE_SINGLE } from './AxisModel';
 import { ParsedModelFinder, ParsedModelFinderKnown } from '../../util/model';
 import { ScaleDataValue } from '../../util/types';
 import { AxisBaseModel } from '../AxisBaseModel';
@@ -44,7 +44,7 @@ export const singleDimensions = ['single'];
  */
 class Single implements CoordinateSystem, CoordinateSystemMaster {
 
-    readonly type = COORD_SYS_TYPE_SINGLE_AXIS;
+    readonly type = COORD_SYS_TYPE_SINGLE;
 
     readonly dimension = 'single';
     /**

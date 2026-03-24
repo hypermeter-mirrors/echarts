@@ -24,7 +24,7 @@ import type Axis2D from '../../coord/cartesian/Axis2D';
 import type { StageHandler } from '../../util/types';
 import createRenderPlanner from '../helper/createRenderPlanner';
 import { COORD_SYS_TYPE_CARTESIAN_2D } from '../../coord/cartesian/GridModel';
-import { COORD_SYS_TYPE_SINGLE_AXIS } from '../../coord/single/AxisModel';
+import { COORD_SYS_TYPE_SINGLE } from '../../coord/single/AxisModel';
 
 export default function jitterLayout(): StageHandler {
     return {
@@ -36,7 +36,7 @@ export default function jitterLayout(): StageHandler {
             const coordSys = seriesModel.coordinateSystem;
             if (!coordSys || (
                 coordSys.type !== COORD_SYS_TYPE_CARTESIAN_2D
-                && coordSys.type !== COORD_SYS_TYPE_SINGLE_AXIS
+                && coordSys.type !== COORD_SYS_TYPE_SINGLE
             )) {
                 return;
             }

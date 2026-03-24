@@ -294,7 +294,9 @@ export function initBreakOrLinearMapper(
             // Some `ScaleMapper` methods (such as `normalize`) needs to be fast for large data
             // when no breaks, so mount break methods only when breaks really exist.
             each(SCALE_MAPPER_METHOD_NAMES, function (methodName) {
-                (mapper as any)[methodName] = bind(brkMapper[methodName], brkMapper);
+                if (brkMapper[methodName]) {
+                    (mapper as any)[methodName] = bind(brkMapper[methodName], brkMapper);
+                }
             });
             brk = brkMapper;
         }
