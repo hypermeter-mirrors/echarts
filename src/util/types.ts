@@ -590,6 +590,9 @@ export interface ScaleTick {
     time?: TimeScaleTick['time'];
     // NOTICE: null/undefined mean it is unknown whether this tick is "nice".
     notNice?: boolean | NullUndefined;
+    // Only works on category axis.
+    // Be `true` if this tick is out of category interval.
+    offInterval?: boolean | NullUndefined,
 };
 export interface TimeScaleTick extends ScaleTick {
     time: {

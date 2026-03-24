@@ -104,8 +104,14 @@ abstract class Scale<
      */
     abstract getLabel(tick: ScaleTick): string;
 
+    /**
+     * Create ticks. The result can be modified by the caller.
+     */
     abstract getTicks(opt?: ScaleGetTicksOpt): ScaleTick[];
 
+    /**
+     * Create minor ticks. The result can be modified by the caller.
+     */
     abstract getMinorTicks(splitNumber: number): number[][];
 
     static registerClass: clazzUtil.ClassManager['registerClass'];

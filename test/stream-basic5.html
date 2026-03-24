@@ -59,28 +59,36 @@ under the License.
 
             const _ctx = {
                 rawDataCount: {
+                    text: 'rawDataCount:',
                     value: undefined,
                     values: [undefined, 10, 100, 1e3, 5e3],
                     // value: 10,
                     // values: [10, 100, 1e3, 5e3],
                 },
+                br: {},
+                hoverLayerThreshold: {
+                    text: 'hoverLayerThreshold:',
+                    value: undefined,
+                    values: [undefined, 300, 1000, 0],
+                },
                 large: {
+                    text: 'large:',
                     value: true,
                     values: [true, false],
                 },
                 largeThreshold: {
+                    text: 'largeThreshold:',
                     value: undefined,
                     values: [undefined, 1, 1000],
                 },
-                hoverLayerThreshold: {
-                    value: undefined,
-                    values: [undefined, 300, 1000, 0],
-                },
+                br: {},
                 progressive: {
+                    text: 'progressive:',
                     value: 1e4,
                     values: [1e4, 100, undefined, 0, 1, 1000, 1e4],
                 },
                 progressiveThreshold: {
+                    text: 'progressiveThreshold:',
                     value: undefined,
                     values: [undefined, 1, 1000],
                 },
@@ -312,59 +320,7 @@ under the License.
                 height: 350,
                 // recordCanvas: true
                 inputsStyle: 'compact',
-                inputs: [{
-                    type: 'select',
-                    text: 'rawDataCount:',
-                    values: _ctx.rawDataCount.values,
-                    onchange() {
-                        _ctx.rawDataCount.value = this.value;
-                        updateChart();
-                    }
-                }, {
-                    type: 'br',
-                }, {
-                    type: 'select',
-                    text: 'hoverLayerThreshold:',
-                    values: _ctx.hoverLayerThreshold.values,
-                    onchange() {
-                        _ctx.hoverLayerThreshold.value = this.value;
-                        updateChart();
-                    }
-                }, {
-                    type: 'select',
-                    text: 'large:',
-                    values: _ctx.large.values,
-                    onchange() {
-                        _ctx.large.value = this.value;
-                        updateChart();
-                    }
-                }, {
-                    type: 'select',
-                    text: 'largeThreshold:',
-                    values: _ctx.largeThreshold.values,
-                    onchange() {
-                        _ctx.largeThreshold.value = this.value;
-                        updateChart();
-                    }
-                }, {
-                    type: 'br',
-                }, {
-                    type: 'select',
-                    text: 'progressive:',
-                    values: _ctx.progressive.values,
-                    onchange() {
-                        _ctx.progressive.value = this.value;
-                        updateChart();
-                    }
-                }, {
-                    type: 'select',
-                    text: 'progressiveThreshold:',
-                    values: _ctx.progressiveThreshold.values,
-                    onchange() {
-                        _ctx.progressiveThreshold.value = this.value;
-                        updateChart();
-                    }
-                }]
+                inputs: testHelper.createInputsSimply(_ctx, updateChart),
             });
         });
         </script>

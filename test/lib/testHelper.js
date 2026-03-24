@@ -83,6 +83,7 @@
      * @param {boolean} [opt.saveInputsInitialState] Optional.
      *  Required by `chart.__testHelper.restoreInputsToInitialState`
      * @param {InputDefine[]|InputDefine|()=>InputDefine[]} [opt.inputs] Optional.
+     *  See also `testHelper.createInputsSimply()`
      *  definitions of button/range/select/br/hr.
      *  They are the same: `opt.buttons` `opt.button`, `opt.inputs`, `opt.input`.
      *  It can be a function that return inputs definitions, like:
@@ -1764,6 +1765,73 @@
             }
         }
     }
+
+    /**
+     * Simply create inputs - all of them are 'select' or 'br'.
+     * This is the most commonly used case.
+     *
+     * Usage:
+     *  ```js
+     *  const _ctx = {
+     *      xAxis_axisTick_interval: {
+     *          text: 'xAxis.axisTick.interval:',  // Any text
+     *          value: 'NOT_SET',                  // Initial value of the "select" input.
+     *          values: ['NOT_SET', 2, 0, 1]       // Options of the "select" input.
+     *      },
+     *      xAxis_axisLabel_interval: {
+     *          text: 'xAxis.axisLabel.interval:',
+     *          value: 'NOT_SET',
+     *          values: ['NOT_SET', 2, 0, 1]
+     *      },
+     *      br: {},                                // Can create a 'br' input.
+     *                                             // 'br'/'BR' is reserved keys.
+     *      dataZoomOrMinMax: {
+     *          text: 'use:',
+     *          value: 'use_xAxis_min_max',
+     *          values: ['use_xAxis_min_max', 'use_dataZoom'],
+     *      }
+     *  };
+     *  function createOption() {
+     *      return {...};
+     *  }
+     *  function updateChart() {
+     *      chart.setOption(createOption(), {notMerge: true});
+     *  }
+     *  var chart = testHelper.create(echarts, 'chart4', {
+     *      option: createOption(),
+     *      inputsStyle: 'compact',
+     *      inputs: testHelper.createInputsSimply(_ctx, updateChart)
+     *  };
+     *  ```
+     */
+    testHelper.createInputsSimply = function (_ctx, updateChart) {
+        var inputs = [];
+        for (var key in _ctx) {
+            if (_ctx.hasOwnProperty(key)) {
+                inputs.push(createInput(key));
+            }
+        }
+        function createInput(key) {
+            if (key.toLowerCase() === 'br') {
+                return {
+                    type: 'br'
+                };
+            }
+            else {
+                return {
+                    type: 'select',
+                    text: _ctx[key].text,
+                    value: _ctx[key].value,
+                    values: _ctx[key].values,
+                    onchange: function () {
+                        _ctx[key].value = this.value;
+                        updateChart();
+                    }
+                };
+            }
+        }
+        return inputs;
+    };
 
     testHelper.createRecordVideo = function (chart, recordVideoContainer) {
         var button = document.createElement('button');

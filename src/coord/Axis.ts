@@ -176,16 +176,15 @@ class Axis {
             breakTicks: opt.breakTicks,
             pruneByBreak: opt.pruneByBreak,
         });
-        const ticks = result.ticks;
-
-        const ticksCoords = map(ticks, function (tickVal) {
+        const ticksCoords = map(result.ticks, function (tick) {
+            const tickValue = tick.value;
             return {
                 coord: this.dataToCoord(
                     isOrdinalScale(this.scale)
-                        ? (this.scale as OrdinalScale).getRawOrdinalNumber(tickVal)
-                        : tickVal
+                        ? (this.scale as OrdinalScale).getRawOrdinalNumber(tickValue)
+                        : tickValue
                 ),
-                tickValue: tickVal
+                tickValue,
             };
         }, this);
 

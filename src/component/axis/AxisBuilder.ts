@@ -75,7 +75,7 @@ import {
     AxisLabelsComputingContext, AxisTickLabelComputingKind, createAxisLabelsComputingContext
 } from '../../coord/axisTickLabelBuilder';
 import { AxisTickCoord } from '../../coord/Axis';
-import { isTimeScale } from '../../scale/helper';
+import { isOrdinalScale, isTimeScale } from '../../scale/helper';
 
 
 const PI = Math.PI;
@@ -1081,6 +1081,7 @@ function fixMinMaxLabelShow(
     ) {
         let outmostLabelLayout = ensureLabelLayoutWithGeometry(labelLayoutList[outmostLabelIdx]);
         let innerLabelLayout = ensureLabelLayoutWithGeometry(labelLayoutList[innerLabelIdx]);
+        const scale = axis.scale;
         if (!outmostLabelLayout || !innerLabelLayout) {
             return;
         }
@@ -1089,9 +1090,15 @@ function fixMinMaxLabelShow(
                 // In this case, users are unlikely to expect labels to be hidden.
                 return;
             }
-            if (isTimeScale(axis.scale) && getLabelInner(outmostLabelLayout.label).labelInfo.tick.notNice) {
-                // TimeScale does not expand extent to "nice", so eliminate labels that are not nice.
+            const tick = getLabelInner(outmostLabelLayout.label).labelInfo.tick;
+            if (// TimeScale does not expand extent to "nice", so eliminate labels that are not nice.
+                (isTimeScale(scale) && tick.notNice)
+                // Category axis does not expect tick that out of axisLabel.internal to be displayed
+                // unless required.
+                || (isOrdinalScale(scale) && tick.offInterval)
+            ) {
                 ignoreEl(outmostLabelLayout.label);
+                return;
             }
         }
 
