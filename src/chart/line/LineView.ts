@@ -400,7 +400,9 @@ function getIsIgnoreFunc(
     zrUtil.each(categoryAxis.getViewLabels(), function (labelItem) {
         const ordinalNumber = (categoryAxis.scale as OrdinalScale)
             .getRawOrdinalNumber(labelItem.tick.value);
-        labelMap[ordinalNumber] = 1;
+        if (!labelItem.tick.offInterval) {
+            labelMap[ordinalNumber] = 1;
+        }
     });
 
     return function (dataIndex: number) {

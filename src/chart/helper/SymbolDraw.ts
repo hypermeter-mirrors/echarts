@@ -195,7 +195,6 @@ class SymbolDraw {
             return data.getItemLayout(idx);
         };
 
-
         // There is no oldLineData only when first rendering or switching from
         // stream mode to normal mode, where previous elements should be removed.
         if (!oldData) {

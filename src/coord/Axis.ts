@@ -18,7 +18,7 @@
 */
 
 import {each, map} from 'zrender/src/core/util';
-import {linearMap, round} from '../util/number';
+import {linearMap} from '../util/number';
 import {
     createAxisTicks,
     createAxisLabels,
@@ -26,12 +26,16 @@ import {
     AxisLabelsComputingContext,
     AxisTickLabelComputingKind,
     createAxisLabelsComputingContext,
+    AxisLabelInfoDetermined,
 } from './axisTickLabelBuilder';
 import Scale, { ScaleGetTicksOpt } from '../scale/Scale';
 import { DimensionName, NullUndefined, ScaleDataValue, ScaleTick } from '../util/types';
 import OrdinalScale from '../scale/Ordinal';
 import Model from '../model/Model';
-import { AxisBaseOption, CategoryAxisBaseOption, OptionAxisType } from './axisCommonTypes';
+import {
+    AxisBaseOption, AxisTickOptionUnion, CategoryAxisBaseOption,
+    CategoryTickLabelSplitBuildingOption, OptionAxisType
+} from './axisCommonTypes';
 import { AxisBaseModel } from './AxisBaseModel';
 import { isOrdinalScale } from '../scale/helper';
 import { calcBandWidth } from './axisBand';
@@ -40,8 +44,7 @@ const NORMALIZED_EXTENT = [0, 1] as [number, number];
 
 export interface AxisTickCoord {
     coord: number;
-    // That is `scaleTick.value`.
-    tickValue?: ScaleTick['value'];
+    tickValue: ScaleTick['value'];
     // `true` if onBand fixed.
     onBand?: boolean;
 }
@@ -159,24 +162,20 @@ class Axis {
      * `axis.getTicksCoords` considers `onBand`, which is used by
      * `boundaryGap:true` of category axis and splitLine and splitArea.
      * @param opt.tickModel default: axis.model.getModel('axisTick')
-     * @param opt.clamp If `true`, the first and the last
-     *        tick must be at the axis end points. Otherwise, clip ticks
-     *        that outside the axis extent.
      */
     getTicksCoords(opt?: {
-        tickModel?: Model,
-        clamp?: boolean,
+        tickModel?: Model<CategoryTickLabelSplitBuildingOption>,
         breakTicks?: ScaleGetTicksOpt['breakTicks'],
         pruneByBreak?: ScaleGetTicksOpt['pruneByBreak']
     }): AxisTickCoord[] {
         opt = opt || {};
-
         const tickModel = opt.tickModel || this.getTickModel();
+
         const result = createAxisTicks(this, tickModel as AxisBaseModel, {
             breakTicks: opt.breakTicks,
             pruneByBreak: opt.pruneByBreak,
         });
-        const ticksCoords = map(result.ticks, function (tick) {
+        const preTicksCoords = map(result.ticks, function (tick) {
             const tickValue = tick.value;
             return {
                 coord: this.dataToCoord(
@@ -184,17 +183,25 @@ class Axis {
                         ? (this.scale as OrdinalScale).getRawOrdinalNumber(tickValue)
                         : tickValue
                 ),
-                tickValue,
+                tick,
             };
         }, this);
 
-        const alignWithLabel = tickModel.get('alignWithLabel');
+        const alignWithLabel = (tickModel as Model<CategoryAxisBaseOption['axisTick']>).get('alignWithLabel');
 
-        fixOnBandTicksCoords(
-            this, ticksCoords, alignWithLabel, opt.clamp
+        const onBandModified = fixOnBandTicksCoords(
+            this,
+            preTicksCoords,
+            alignWithLabel,
         );
 
-        return ticksCoords;
+        return map(preTicksCoords, function (item) {
+            return {
+                coord: item.coord,
+                tickValue: item.tick.value,
+                onBand: onBandModified,
+            };
+        });
     }
 
     getMinorTicksCoords(): AxisTickCoord[][] {
@@ -214,7 +221,7 @@ class Axis {
             return map(minorTicksGroup, function (minorTick) {
                 return {
                     coord: this.dataToCoord(minorTick),
-                    tickValue: minorTick
+                    tickValue: minorTick,
                 };
             }, this);
         }, this);
@@ -223,7 +230,7 @@ class Axis {
 
     getViewLabels(
         ctx?: AxisLabelsComputingContext
-    ): ReturnType<typeof createAxisLabels>['labels'] {
+    ): AxisLabelInfoDetermined[] {
         ctx = ctx || createAxisLabelsComputingContext(AxisTickLabelComputingKind.determine);
         return createAxisLabels(this, ctx).labels;
     }
@@ -239,7 +246,7 @@ class Axis {
      * In GL, this method may be overridden to:
      * `axisModel.getModel('axisTick', grid3DModel.getModel('axisTick'));`
      */
-    getTickModel(): Model {
+    getTickModel(): Model<AxisTickOptionUnion> {
         return this.model.getModel('axisTick');
     }
 
@@ -275,79 +282,80 @@ function makeExtentWithBands(axis: Axis): number[] {
         const margin = size / (axis.scale as OrdinalScale).count() / 2;
         extent[0] += margin;
         extent[1] -= margin;
+
     }
     return extent;
 }
 
-// If axis has labels [1, 2, 3, 4]. Bands on the axis are
-// |---1---|---2---|---3---|---4---|.
-// So the displayed ticks and splitLine/splitArea should between
-// each data item, otherwise cause misleading (e.g., split tow bars
-// of a single data item when there are two bar series).
-// Also consider if tickCategoryInterval > 0 and onBand, ticks and
-// splitLine/spliteArea should layout appropriately corresponding
-// to displayed labels. (So we should not use `getBandWidth` in this
-// case).
+/**
+ * `axis.onBand: true` (i.e., `boundaryGap: true` in ec option) and `CategoryTickLabelSplitIntervalOption`
+ *  affects `axisTick`/`axisLabel`/`splitLine`/`splitArea`.
+ *
+ * Currently, the visual result is best only when `axisTick/splitLine/splitArea.interval === 0`.
+ * The typical case is:
+ *      |---|---|---|     <= This is the input `preTicksCoords`
+ *      0   1   2   3        (having been added half band width by `makeExtentWithBands`).
+ *    |---|---|---|---|  <= This is the result.
+ *      0   1   2   3
+ *
+ * When `interval > 0`, the visual result may be odd for `axisLabel` and `customValues`, but acceptable
+ * for `axisTick` `splitLine` and `splitArea`:
+ *      |---~---|---~---~---|---|    <= This is the input `preTicksCoords`; `interval: 2; min: 1; max: 7`.
+ *      ₁   ₂   3   ₄   ₅   6   ₇       Subscript numbers (`₀`, `₁`, `₃`) indicate axis labels are hidden
+ *                                      (by default settings) due to off-interval.
+ *                                      A tilde (`~`) indicates a tick ignored due to off-interval.
+ *    |---~---|---~---~---|---~---|  <= This is the result.
+ *      ₁   ₂   3   ₄   ₅   6   ₇
+ *
+ * NOTE:
+ *  - A inappropriate result may cause misleading (e.g., split 2 bars of a single data item when there
+ *    are two bar series).
+ *  - See also #11176 #11186 .
+ * PENDING:
+ *  - The show/hide of `axisLabel` may be optimized when `interval > 1 and be an even number`,
+ *    but that may introduce complex and still not perfect in odd number, and may not necessary if
+ *    `axisTick: {show: false}` and `axisLabel` can auto hidden when overlapping.
+ */
 function fixOnBandTicksCoords(
     axis: Axis,
-    ticksCoords: AxisTickCoord[],
+    preTicksCoords: {
+        coord: AxisTickCoord['coord'],
+        tick: ScaleTick
+    }[],
     alignWithLabel: boolean,
-    clamp: boolean
-) {
-    const ticksLen = ticksCoords.length;
+    // return: whether coords are modified according to `onBand`.
+): boolean {
+    const ticksLen = preTicksCoords.length;
 
     if (!axis.onBand || alignWithLabel || !ticksLen) {
-        return;
+        return false;
     }
 
-    const axisExtent = axis.getExtent();
-    let last;
-    let diffSize;
-    if (ticksLen === 1) {
-        ticksCoords[0].coord = axisExtent[0];
-        ticksCoords[0].onBand = true;
-        last = ticksCoords[1] = {coord: axisExtent[1], tickValue: ticksCoords[0].tickValue, onBand: true};
-    }
-    else {
-        const crossLen = ticksCoords[ticksLen - 1].tickValue - ticksCoords[0].tickValue;
-        const shift = (ticksCoords[ticksLen - 1].coord - ticksCoords[0].coord) / crossLen;
-
-        each(ticksCoords, function (ticksItem) {
-            ticksItem.coord -= shift / 2;
-            ticksItem.onBand = true;
-        });
-
-        const dataExtent = axis.scale.getExtent();
-        diffSize = 1 + dataExtent[1] - ticksCoords[ticksLen - 1].tickValue;
-
-        last = {coord: ticksCoords[ticksLen - 1].coord + shift * diffSize, tickValue: dataExtent[1] + 1, onBand: true};
-
-        ticksCoords.push(last);
+    // Assume:
+    //  - If `onBand: true`, `bandWidth` has been calculated by `ticksLen + 1` rather than `ticksLen`.
+    //  - If `interval > 0`, some ticks may be ignored, but `ticksCoords` has always included boundary
+    //    ticks of axis extent, and be `offInterval: true` if off-interval.
+    //  - No need to consider breaks, since axis break is not supported in category axis.
+    const bandWidth = calcBandWidth(axis).w;
+    if (!bandWidth) {
+        return false;
     }
 
-    const inverse = axisExtent[0] > axisExtent[1];
+    each(preTicksCoords, function (ticksItem) {
+        ticksItem.coord -= bandWidth / 2;
+    });
 
-    // Handling clamp.
-    if (littleThan(ticksCoords[0].coord, axisExtent[0])) {
-        clamp ? (ticksCoords[0].coord = axisExtent[0]) : ticksCoords.shift();
+    const dataExtent = axis.scale.getExtent();
+    const oldLast = preTicksCoords[ticksLen - 1];
+    if (oldLast.tick.offInterval) {
+        preTicksCoords.pop();
     }
-    if (clamp && littleThan(axisExtent[0], ticksCoords[0].coord)) {
-        ticksCoords.unshift({coord: axisExtent[0], onBand: true});
-    }
-    if (littleThan(axisExtent[1], last.coord)) {
-        clamp ? (last.coord = axisExtent[1]) : ticksCoords.pop();
-    }
-    if (clamp && littleThan(last.coord, axisExtent[1])) {
-        ticksCoords.push({coord: axisExtent[1], onBand: true});
-    }
+    preTicksCoords.push({
+        coord: oldLast.coord + bandWidth,
+        tick: {value: dataExtent[1] + 1},
+    });
 
-    function littleThan(a: number, b: number): boolean {
-        // Avoid rounding error cause calculated tick coord different with extent.
-        // It may cause an extra unnecessary tick added.
-        a = round(a, 10);
-        b = round(b, 10);
-        return inverse ? a > b : a < b;
-    }
+    return true;
 }
 
 export default Axis;

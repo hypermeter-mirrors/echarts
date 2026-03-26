@@ -72,7 +72,7 @@ function fixAngleOverlap(list: TickCoord[]) {
     }
 }
 
-type TickCoord = ReturnType<AngleAxis['getTicksCoords']>[number];
+type TickCoord = Pick<ReturnType<AngleAxis['getTicksCoords']>[number], 'coord'>;
 type TickLabel = ReturnType<AngleAxis['getViewLabels']>[number] & {
     coord: number
 };

@@ -38,6 +38,7 @@ import {
     AxisLabelFormatterExtraParams,
     OptionAxisType,
     AXIS_TYPES,
+    CategoryTickLabelSplitBuildingOption,
 } from './axisCommonTypes';
 import SeriesData from '../data/SeriesData';
 import { getStackedDimension } from '../data/helper/dataStackHelper';
@@ -255,7 +256,7 @@ export function getAxisRawValue<TIsCategory extends boolean>(axis: Axis, tick: S
  * @param model axisLabelModel or axisTickModel
  */
 export function getOptionCategoryInterval(
-    model: Model<AxisBaseOption['axisLabel']>
+    model: Model<CategoryTickLabelSplitBuildingOption>
 ): CategoryAxisBaseOption['axisLabel']['interval'] {
     const interval = (model as Model<CategoryAxisBaseOption['axisLabel']>).get('interval');
     return interval == null ? 'auto' : interval;

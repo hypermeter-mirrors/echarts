@@ -222,6 +222,10 @@ class OrdinalScale extends Scale<OrdinalScale> {
 
     };
 
+    /**
+     * NOTE: When there is only one category value,
+     * `extent[0] === extent[1]`, and the result has only one item.
+     */
     getTicks(): OrdinalScaleTick[] {
         const ticks = [];
         const extent = getScaleExtentForTickUnsafe(this._mapper);

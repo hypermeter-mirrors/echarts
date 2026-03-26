@@ -210,7 +210,7 @@ export interface CategoryAxisBaseOption extends AxisBaseOptionCommon {
     axisTick?: AxisBaseOptionCommon['axisTick'] & {
         // If tick is align with label when boundaryGap is true
         alignWithLabel?: boolean,
-        interval?: 'auto' | number | ((index: number, value: string) => boolean)
+        interval?: CategoryTickLabelSplitIntervalOption,
     }
 }
 export interface ValueAxisBaseOption extends NumericAxisBaseOptionCommon {
@@ -233,6 +233,9 @@ export interface TimeAxisBaseOption extends NumericAxisBaseOptionCommon {
     type?: 'time';
     axisLabel?: AxisLabelOption<'time'>;
 }
+
+export type AxisTickOptionUnion = AxisBaseOptionCommon['axisTick'] | CategoryAxisBaseOption['axisTick'];
+
 interface AxisNameTextStyleOption extends LabelCommonOption {
     rich?: RichTextOption
 }
@@ -350,9 +353,8 @@ export type AxisTickLabelCustomValuesOption = (number | string | Date)[];
 
 interface AxisLabelOption<TType extends OptionAxisType> extends AxisLabelBaseOption {
     formatter?: LabelFormatters[TType]
-    interval?: TType extends 'category'
-        ? ('auto' | number | ((index: number, value: string) => boolean))
-        : unknown // Reserved but not used.
+    // For non category axis, this option does not work.
+    interval?: CategoryTickLabelSplitIntervalOption
 }
 
 interface MinorTickOption {
@@ -364,7 +366,7 @@ interface MinorTickOption {
 
 interface SplitLineOption {
     show?: boolean,
-    interval?: 'auto' | number | ((index:number, value: string) => boolean),
+    interval?: CategoryTickLabelSplitIntervalOption,
     // true | false
     showMinLine?: boolean,
     // true | false
@@ -380,10 +382,23 @@ interface MinorSplitLineOption {
 
 interface SplitAreaOption {
     show?: boolean,
-    interval?: 'auto' | number | ((index:number, value: string) => boolean)
+    interval?: CategoryTickLabelSplitIntervalOption,
     // colors will display in turn
-    areaStyle?: AreaStyleOption<ZRColor[]>
+    areaStyle?: AreaStyleOption<ZRColor[]>,
 }
+
+/**
+ * `0` means show all; `1` means show one every other one; `2` means show one out of
+ * every three; and so one.
+ */
+type CategoryTickLabelSplitIntervalOption =
+    'auto' | number | ((index: number, value: string) => boolean) | NullUndefined;
+
+export type CategoryTickLabelSplitBuildingOption = {
+    show?: boolean,
+    interval?: CategoryTickLabelSplitIntervalOption,
+};
+
 
 export type AxisBaseOption = ValueAxisBaseOption | LogAxisBaseOption
     | CategoryAxisBaseOption | TimeAxisBaseOption;

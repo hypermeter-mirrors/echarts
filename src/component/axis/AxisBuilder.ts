@@ -1148,7 +1148,9 @@ function fixMinMaxLabelShow(
     deal(showMaxLabelOption, labelsLen - 1, labelsLen - 2);
 }
 
-// PENDING: Is it necessary to display a tick while the corresponding label is ignored?
+// Under default settings, it is visually odd to display a tick without its label,
+// since ticks extend from axis line towards labels and serve as visual guide.
+// PENDING: Is there opposite cases?
 function syncLabelIgnoreToMajorTicks(
     cfg: AxisBuilderCfgDetermined,
     labelLayoutList: LabelLayoutData[],

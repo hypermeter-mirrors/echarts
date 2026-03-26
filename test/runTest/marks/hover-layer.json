@@ -1,0 +1,10 @@
+[
+  {
+    "link": "",
+    "comment": "Fix hover layer bug and progressive performance issue.",
+    "type": "Bug Fixing",
+    "markedBy": "100pah",
+    "lastVersion": "6.1.0",
+    "markTime": 1774539822418
+  }
+]

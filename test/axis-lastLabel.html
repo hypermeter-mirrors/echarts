@@ -571,7 +571,7 @@ under the License.
                             // set enterable as false to check coord of event triggered by tooltip.
                             enterable: false,
                             axisPointer: {
-                                type: 'cross'
+                                type: 'shadow'
                             },
                         },
                         grid: {
@@ -586,10 +586,10 @@ under the License.
                             data: xAxisData,
                             boundaryGap: false,
                             splitArea: {
-                                show: false
+                                show: true
                             },
                             splitLine: {
-                                show: false
+                                show: true
                             },
                             ...minMaxConfig,
                             ...xAxisConfig,

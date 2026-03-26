@@ -1,5 +1,13 @@
 [
   {
+    "link": "",
+    "comment": "dataZoom label show fix.",
+    "type": "Bug Fixing",
+    "markedBy": "100pah",
+    "lastVersion": "6.1.0",
+    "markTime": 1774545544514
+  },
+  {
     "link": "https://github.com/apache/echarts/pull/21430",
     "comment": "The diff may be introduced by the change of dataZoom auto precision. And the result is acceptable.",
     "type": "New Feature",

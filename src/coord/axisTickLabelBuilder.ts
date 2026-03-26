@@ -26,7 +26,10 @@ import {
 } from './axisHelper';
 import Axis from './Axis';
 import Model from '../model/Model';
-import { AxisBaseOption, AxisTickLabelCustomValuesOption, CategoryAxisBaseOption } from './axisCommonTypes';
+import {
+    AxisBaseOption, AxisTickLabelCustomValuesOption, CategoryAxisBaseOption,
+    CategoryTickLabelSplitBuildingOption
+} from './axisCommonTypes';
 import OrdinalScale from '../scale/Ordinal';
 import { AxisBaseModel } from './AxisBaseModel';
 import type Axis2D from './cartesian/Axis2D';
@@ -48,14 +51,16 @@ type AxisCache<TKey, TVal> = {
 type AxisCategoryTickLabelCacheKey<TTickLabel extends AxisInnerStoreCacheProp> =
     CategoryAxisBaseOption[TTickLabel]['interval'];
 
-interface AxisCategoryLabelCreated {
+interface AxisCategoryLabelsCreated {
     labels: AxisLabelInfoDetermined[]
     labelCategoryInterval: number
 }
-interface AxisCategoryTickCreated {
+interface AxisCategoryTicksCreated {
     ticks: ScaleTick[]
     tickCategoryInterval?: number
 }
+
+type AxisTicksCreated = AxisCategoryTicksCreated;
 
 type AxisModelInnerStore = {
     lastAutoInterval: number
@@ -67,8 +72,8 @@ const modelInner = makeInner<AxisModelInnerStore, AxisBaseModel>();
 
 type AxisInnerStoreCacheProp = 'axisTick' | 'axisLabel';
 type AxisInnerStore = {
-    axisTick: AxisCache<AxisCategoryTickLabelCacheKey<'axisTick'>, AxisCategoryTickCreated>
-    axisLabel: AxisCache<AxisCategoryTickLabelCacheKey<'axisLabel'>, AxisCategoryLabelCreated>
+    axisTick: AxisCache<AxisCategoryTickLabelCacheKey<'axisTick'>, AxisCategoryTicksCreated>
+    axisLabel: AxisCache<AxisCategoryTickLabelCacheKey<'axisLabel'>, AxisCategoryLabelsCreated>
     autoInterval: number
 };
 const axisInner = makeInner<AxisInnerStore, Axis>();
@@ -137,9 +142,9 @@ export function createAxisLabels(axis: Axis, ctx: AxisLabelsComputingContext): {
  */
 export function createAxisTicks(
     axis: Axis,
-    tickModel: AxisBaseModel,
+    tickModel: Model<CategoryTickLabelSplitBuildingOption>,
     opt?: Pick<ScaleGetTicksOpt, 'breakTicks' | 'pruneByBreak'>
-): AxisCategoryTickCreated {
+): AxisTicksCreated {
     const scale = axis.scale;
     const custom = axis.getTickModel().get('customValues');
     if (custom) {
@@ -185,7 +190,7 @@ function makeCategoryLabelsActually(
     axis: Axis,
     labelModel: Model<AxisBaseOption['axisLabel']>,
     ctx: AxisLabelsComputingContext
-): AxisCategoryLabelCreated {
+): AxisCategoryLabelsCreated {
     const labelsCache = ensureCategoryLabelCache(axis);
     const optionLabelInterval = getOptionCategoryInterval(labelModel);
     const isEstimate = ctx.kind === AxisTickLabelComputingKind.estimate;
@@ -205,12 +210,12 @@ function makeCategoryLabelsActually(
     let numericLabelInterval;
 
     if (zrUtil.isFunction(optionLabelInterval)) {
-        labels = makeLabelsByCustomizedCategoryInterval(axis, optionLabelInterval);
+        labels = makeTicksLabelsByCustomizedCategoryInterval(axis, optionLabelInterval);
     }
     else {
         numericLabelInterval = optionLabelInterval === 'auto'
             ? makeAutoCategoryInterval(axis, ctx) : optionLabelInterval;
-        labels = makeLabelsByNumericCategoryInterval(axis, numericLabelInterval);
+        labels = makeTicksLabelsByNumericCategoryInterval(axis, numericLabelInterval);
     }
 
     const result = {labels, labelCategoryInterval: numericLabelInterval};
@@ -226,7 +231,10 @@ function makeCategoryLabelsActually(
     return result;
 }
 
-function makeCategoryTicks(axis: Axis, tickModel: AxisBaseModel): AxisCategoryTickCreated {
+function makeCategoryTicks(
+    axis: Axis,
+    tickModel: Model<CategoryTickLabelSplitBuildingOption>
+): AxisCategoryTicksCreated {
     const ticksCache = ensureCategoryTickCache(axis);
     const optionTickInterval = getOptionCategoryInterval(tickModel);
     const result = axisCacheGet(ticksCache, optionTickInterval);
@@ -245,7 +253,7 @@ function makeCategoryTicks(axis: Axis, tickModel: AxisBaseModel): AxisCategoryTi
     }
 
     if (zrUtil.isFunction(optionTickInterval)) {
-        ticks = makeLabelsByCustomizedCategoryInterval(axis, optionTickInterval, true);
+        ticks = makeTicksLabelsByCustomizedCategoryInterval(axis, optionTickInterval, true);
     }
     // Always use label interval by default despite label show. Consider this
     // scenario, Use multiple grid with the xAxis sync, and only one xAxis shows
@@ -261,7 +269,7 @@ function makeCategoryTicks(axis: Axis, tickModel: AxisBaseModel): AxisCategoryTi
     }
     else {
         tickCategoryInterval = optionTickInterval;
-        ticks = makeLabelsByNumericCategoryInterval(axis, tickCategoryInterval, true);
+        ticks = makeTicksLabelsByNumericCategoryInterval(axis, tickCategoryInterval, true);
     }
 
     // Cache to avoid calling interval function repeatedly.
@@ -466,16 +474,16 @@ function fetchAutoCategoryIntervalCalculationParams(axis: Axis) {
     };
 }
 
-function makeLabelsByNumericCategoryInterval(
+function makeTicksLabelsByNumericCategoryInterval(
     axis: Axis, categoryInterval: number
 ): AxisLabelInfoDetermined[];
-function makeLabelsByNumericCategoryInterval(
+function makeTicksLabelsByNumericCategoryInterval(
     axis: Axis, categoryInterval: number, onlyTick: false
 ): AxisLabelInfoDetermined[];
-function makeLabelsByNumericCategoryInterval(
+function makeTicksLabelsByNumericCategoryInterval(
     axis: Axis, categoryInterval: number, onlyTick: true
 ): ScaleTick[];
-function makeLabelsByNumericCategoryInterval(
+function makeTicksLabelsByNumericCategoryInterval(
     axis: Axis, categoryInterval: number, onlyTick?: boolean
 ) {
     const labelFormatter = makeLabelFormatter(axis);
@@ -532,16 +540,16 @@ type CategoryIntervalCb = (tickVal: number, rawLabel: string) => boolean;
 
 // When interval is function, the result `false` means ignore the tick.
 // It is time consuming for large category data.
-function makeLabelsByCustomizedCategoryInterval(
+function makeTicksLabelsByCustomizedCategoryInterval(
     axis: Axis, categoryInterval: CategoryIntervalCb
 ): AxisLabelInfoDetermined[];
-function makeLabelsByCustomizedCategoryInterval(
+function makeTicksLabelsByCustomizedCategoryInterval(
     axis: Axis, categoryInterval: CategoryIntervalCb, onlyTick: false
 ): AxisLabelInfoDetermined[];
-function makeLabelsByCustomizedCategoryInterval(
+function makeTicksLabelsByCustomizedCategoryInterval(
     axis: Axis, categoryInterval: CategoryIntervalCb, onlyTick: true
 ): ScaleTick[];
-function makeLabelsByCustomizedCategoryInterval(
+function makeTicksLabelsByCustomizedCategoryInterval(
     axis: Axis, categoryInterval: CategoryIntervalCb, onlyTick?: boolean
 ) {
     const ordinalScale = axis.scale;
