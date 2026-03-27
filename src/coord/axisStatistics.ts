@@ -133,7 +133,7 @@ export type AxisStatisticsResult = Pick<
     'liPosMinGap'
 >;
 
-type AxisStatEachSeriesCb = (seriesModel: SeriesModel, travelIdx: number) => void;
+type AxisStatEachSeriesCb = (seriesModel: SeriesModel) => void;
 
 let validateInputAxis: ((axis: Axis) => void) | NullUndefined;
 if (__DEV__) {
@@ -225,7 +225,7 @@ export function eachSeriesOnAxis(
 export function eachSeriesOnAxisOnKey(
     axis: Axis,
     axisStatKey: AxisStatKey,
-    cb: (series: SeriesModel, idx: number) => void
+    cb: AxisStatEachSeriesCb
 ): void {
     if (__DEV__) {
         assert(axisStatKey != null);
@@ -247,7 +247,7 @@ function eachSeriesDeal(
         const seriesModel = seriesList[i];
         // Legend-filtered series need to be ignored since series are registered before `legendFilter`.
         if (!ecModel.isSeriesFiltered(seriesModel)) {
-            cb(seriesModel, i);
+            cb(seriesModel);
         }
     }
 }

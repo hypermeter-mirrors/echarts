@@ -18,7 +18,7 @@
 */
 
 import { isArray } from 'zrender/src/core/util';
-import {parsePercent} from '../../util/number';
+import {mathMax, mathMin, parsePercent} from '../../util/number';
 import type GlobalModel from '../../model/Global';
 import BoxplotSeriesModel, { SERIES_TYPE_BOXPLOT } from './BoxplotSeries';
 import {
@@ -52,26 +52,29 @@ export function boxplotLayout(ecModel: GlobalModel) {
             return;
         }
         const baseResult = calculateBase(axis, seriesCount);
-        eachSeriesOnAxisOnKey(axis, axisStatKey, function (seriesModel: BoxplotSeriesModel, idx) {
+        eachSeriesOnAxisOnKey(axis, axisStatKey, function (seriesModel: BoxplotSeriesModel) {
+            const seriesIndex = seriesModel.seriesIndex;
             layoutSingleSeries(
                 seriesModel,
-                baseResult.boxOffsetList[idx],
-                baseResult.boxWidthList[idx]
+                baseResult.boxOffsetList[seriesIndex],
+                baseResult.boxWidthList[seriesIndex]
             );
         });
     });
 }
 
+type BaseCalculationResult = {
+    boxOffsetList: Record<BoxplotSeriesModel['seriesIndex'], number>;
+    boxWidthList: Record<BoxplotSeriesModel['seriesIndex'], number>;
+};
+
 /**
  * Calculate offset and box width for each series.
  */
-function calculateBase(baseAxis: Axis, seriesCount: number): {
-    boxOffsetList: number[];
-    boxWidthList: number[];
-} {
-    const boxWidthList: number[] = [];
-    const boxOffsetList: number[] = [];
-    const boundList: number[][] = [];
+function calculateBase(baseAxis: Axis, seriesCount: number): BaseCalculationResult {
+    const boxWidthList: BaseCalculationResult['boxOffsetList'] = [];
+    const boxOffsetList: BaseCalculationResult['boxWidthList'] = [];
+    const boundList: Record<BoxplotSeriesModel['seriesIndex'], number[]> = [];
 
     const bandWidth = calcBandWidth(
         baseAxis,
@@ -83,10 +86,10 @@ function calculateBase(baseAxis: Axis, seriesCount: number): {
         if (!isArray(boxWidthBound)) {
             boxWidthBound = [boxWidthBound, boxWidthBound];
         }
-        boundList.push([
+        boundList[seriesModel.seriesIndex] = [
             parsePercent(boxWidthBound[0], bandWidth) || 0,
             parsePercent(boxWidthBound[1], bandWidth) || 0
-        ]);
+        ];
     });
 
     const availableWidth = bandWidth * 0.8 - 2;
@@ -94,13 +97,12 @@ function calculateBase(baseAxis: Axis, seriesCount: number): {
     const boxWidth = (availableWidth - boxGap * (seriesCount - 1)) / seriesCount;
     let base = boxWidth / 2 - availableWidth / 2;
 
-    eachSeriesOnAxisOnKey(baseAxis, makeAxisStatKey(SERIES_TYPE_BOXPLOT), function (seriesModel, idx) {
-        boxOffsetList.push(base);
+    eachSeriesOnAxisOnKey(baseAxis, makeAxisStatKey(SERIES_TYPE_BOXPLOT), function (seriesModel) {
+        const seriesIndex = seriesModel.seriesIndex;
+        boxOffsetList[seriesIndex] = base;
         base += boxGap + boxWidth;
 
-        boxWidthList.push(
-            Math.min(Math.max(boxWidth, boundList[idx][0]), boundList[idx][1])
-        );
+        boxWidthList[seriesIndex] = mathMin(mathMax(boxWidth, boundList[seriesIndex][0]), boundList[seriesIndex][1]);
     });
 
     return {

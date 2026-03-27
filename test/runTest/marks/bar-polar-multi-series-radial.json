@@ -1,10 +1,10 @@
 [
   {
     "link": "",
-    "comment": "Fix hover layer bug and progressive performance issue.",
+    "comment": "Fis bandWidth",
     "type": "Bug Fixing",
     "markedBy": "100pah",
     "lastVersion": "6.0.0",
-    "markTime": 1774547084957
+    "markTime": 1774600948497
   }
 ]
