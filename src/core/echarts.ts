@@ -208,9 +208,9 @@ export const PRIORITY = {
 };
 
 /**
- * [ec updating/rendering cycles (EC_CYCLE)]
+ * [ec updating/rendering cycles (EC_CYCLE)]:
  *
- *  - EC_MAIN_CYCLE:
+ *  - [EC_MAIN_CYCLE]:
  *    - It designates a run of a series of processing/updating/rendering.
  *    - It is triggered by:
  *      - `setOption`
@@ -234,7 +234,7 @@ export const PRIORITY = {
  *      - Layout (may be absent) (see `registerLayout`)
  *      - Rendering (`ComponentView` or `SeriesView`)
  *
- *  - EC_PROGRESSIVE_CYCLE:
+ *  - [EC_PROGRESSIVE_CYCLE]:
  *    - It also carries out a series of processing/updating/rendering, but out of EC_MAIN_CYCLE.
  *    - It is performed in each subsequent "animation frame" until finished.
  *    - It can be triggered by EC_MAIN_CYCLE or EC_APPEND_DATA_CYCLE.

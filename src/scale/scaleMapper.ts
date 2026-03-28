@@ -210,6 +210,8 @@ export interface ScaleMapperGeneric<This> {
      * Get a clone of the scale extent.
      * An extent is always in an increase order.
      * It always returns an array - never be a null/undefined.
+     *
+     * @see {setExtent} for more details.
      */
     getExtent(this: This): number[];
 
@@ -235,8 +237,8 @@ export interface ScaleMapperGeneric<This> {
      *            committed to `associateSeriesWithAxis`, and `Scale` instances are created.
      *  - step#2. Call `scaleRawExtentInfoCreate` to really collect series data extent and create
      *            `ScaleRawExtentInfo` instances to manage extent related configurations
-     *                - at "data processing" stage for dataZoom controlled axes, if any, or
-     *                - at "CoordinateSystem#update" stage for all other axes.
+     *              - at "data processing" stage for dataZoom controlled axes, if any, or
+     *              - at "CoordinateSystem#update" stage for all other axes.
      *            Some strategies like "containShape" is performed then to expand the extent if needed.
      *  - step#3. Perform "nice" (see `scaleCalcNice`) or "align" (see `scaleCalcAlign`) strategies to
      *            modify the original extent from `ScaleRawExtentInfo` instance, if needed, at

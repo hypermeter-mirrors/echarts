@@ -1786,7 +1786,7 @@
      *      br: {},                                // Can create a 'br' input.
      *                                             // 'br'/'BR' is reserved keys.
      *      dataZoomOrMinMax: {
-     *          text: 'use:',
+     *          text: 'use:',                      // Can omit.
      *          value: 'use_xAxis_min_max',
      *          values: ['use_xAxis_min_max', 'use_dataZoom'],
      *      }
@@ -1820,7 +1820,7 @@
             else {
                 return {
                     type: 'select',
-                    text: _ctx[key].text,
+                    text: _ctx[key].text || (key + ':'),
                     value: _ctx[key].value,
                     values: _ctx[key].values,
                     onchange: function () {

@@ -299,15 +299,6 @@ export class ScaleRawExtentInfo {
         const isBlank = eqNaN(noZoomEffMM[0]) || eqNaN(noZoomEffMM[1])
             || (isOrdinal && !axisDataLen);
 
-        let needToggleAxisInverse: boolean = false;
-        if (noZoomEffMM[0] > noZoomEffMM[1]) {
-            // Historically, if users set `xxxAxis.min > xxxAxis.max`, the behavior is
-            // sometimes like `xxxAxis.inverse = true`, sometimes abnormal. We remain
-            // backward compatible with the former one.
-            noZoomEffMM.reverse();
-            needToggleAxisInverse = true;
-        }
-
         const needCrossZero = isIntervalScale(scale) && model.getNeedCrossZero && model.getNeedCrossZero();
         if (needCrossZero) {
             if (noZoomEffMM[0] > 0 && noZoomEffMM[1] > 0 && !fixMM[0]) {
@@ -318,6 +309,15 @@ export class ScaleRawExtentInfo {
                 noZoomEffMM[1] = 0;
                 // fixMM[1] = true;
             }
+        }
+
+        let needToggleAxisInverse: boolean = false;
+        if (noZoomEffMM[0] > noZoomEffMM[1]) {
+            // Historically, if users set `xxxAxis.min > xxxAxis.max`, or `xxxAxis.max < dataExtent[0]`,
+            // or `xxxAxis.min > dataExtent[1]` the behavior is sometimes like `xxxAxis.inverse = true`,
+            // sometimes abnormal. We remain backward compatible with the former one.
+            noZoomEffMM.reverse();
+            needToggleAxisInverse = true;
         }
 
         if (scale.sanitize) {
@@ -561,6 +561,8 @@ export function scaleRawExtentInfoEnableBoxCoordSysUsage(
  *          has been dataZoom-filtered. Therefore this handling should not before dataZoom.
  *  - The callback of `min`/`max` in ec option should NOT be called multiple times,
  *      therefore, we initialize `ScaleRawExtentInfo` uniformly in `scaleRawExtentInfoCreate`.
+ *
+ * @see {ScaleMapper['setExtent']} for more details.
  */
 export function scaleRawExtentInfoCreate(
     ecModel: GlobalModel,
