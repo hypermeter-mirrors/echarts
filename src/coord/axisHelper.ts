@@ -368,3 +368,9 @@ export function updateIntervalOrLogScaleForNiceOrAligned(
 
     intervalStub.setConfig(cfg);
 }
+
+export function getTickValueOutermost(scale: Scale, tick: ScaleTick): number {
+    return isOrdinalScale(scale)
+        ? scale.getRawOrdinalNumber(tick.value)
+        : tick.value;
+}

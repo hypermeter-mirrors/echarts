@@ -22,7 +22,7 @@ import { initExtentForUnion, isValidBoundsForExtent } from '../util/model';
 import { NullUndefined } from '../util/types';
 import { AxisBreakParsingResult, BreakScaleMapper, getScaleBreakHelper } from './break';
 import { error } from '../util/log';
-import { ValueTransformLookupOpt } from './helper';
+import type { ValueTransformLookupOpt } from './helper';
 import { DataSanitizationFilter } from '../data/helper/dataValueHelper';
 
 
@@ -128,7 +128,7 @@ export type ScaleMapperTransformInOpt =
  *            This is implemented in `BreakScaleMapper`.
  *            This step may be absent if no breaks.
  *  - step#2: logarithmic (implemented in `LogScale`), or
- *            ordinal-related handling (implemented in `OrdinalScale`), or
+ *            ordinal-related handling, or
  *            others to be supported, such as asinh ...
  *
  * Illustration of some currently supported cases:

@@ -474,8 +474,8 @@ export type OrdinalNumber = number; // The number mapped from each OrdinalRawVal
  *  "ordinal number" 5 should be displayed on `tick.value` 1, ...
  * NOTICE:
  *  - The index/key of `ordinalNumbers` is "tick.value" rather than the index of
- *    `scale.getTicks()`, though in most cases they are the same, except that the
- *    `axis.min` is delibrately set to be not zero.
+ *    `scale.getTicks()`. They are differnet when `axis.min` is set to be not zero,
+ *    or `axisTick/axisLabel.interval > 0`.
  *  - The value of `ordinalNumbers` must be a valid `OrdinalNumber`;
  *    null/undefined is not supported.
  *  - `OrdinalNumber` is always from `0` to `ordinalMeta.categories.length - 1`.
@@ -585,7 +585,32 @@ export type AxisLabelFormatterExtraBreakPart = {
 };
 
 export interface ScaleTick {
+    /**
+     * This is a number corresponding to the the original business value,
+     * that is, a value in the "outmost" space, the result of `Scale['parse']`.
+     *
+     * NOTICE:
+     *  - In `LogScale`, this the value in the pow space (the original space).
+     *  - In `TimeScale`, this is a timestamp.
+     *  - In `OrdinalScale`, this is NOT an `OrdinalNumber`, since `OrdinalSortInfo` exists.
+     *    This `value` is effectively an `OrdinalNumber` before being sorted.
+     *    Should use the conversion `const tickValue = getTickValueOutermost(scale, tick)`
+     *    accordingly, e.g., as the input of user callbacks, `dataToCoord` and `scale.normalize`.
+     *    PENDING:
+     *      And this case is not properly covered by `scaleMapping` polymorphism as `LogScale`
+     *      does - the manual call of `getTickValueOutermost` is still required everywhere.
+     *    Note use cases below:
+     *      - `axis.min/max` should be specified in "unsorted" space.
+     *      - Futher position calculation requires values in "unsorted" space, such as
+     *        `splitLine`, `splitArea`, minor ticks, etc.
+     *      - `anid` (animation id) requires a value in "unsorted" space, since the animation
+     *        typically represents the location (in `axisTick`, `splitLine` and `splitArea`,
+     *        especially when `boundaryGap: true`).
+     *      - Axis label requires a value in "sorted" space.
+     *      - User interactions (tooltip, axis pointer, etc.) gets values in "sorted" space.
+     */
     value: number;
+
     break?: VisualAxisBreak;
     time?: TimeScaleTick['time'];
     // NOTICE: null/undefined mean it is unknown whether this tick is "nice".
@@ -617,24 +642,6 @@ export interface TimeScaleTick extends ScaleTick {
         upperTimeUnit: PrimaryTimeUnit,
         lowerTimeUnit: PrimaryTimeUnit,
     }
-};
-export interface OrdinalScaleTick extends ScaleTick {
-    /**
-     * Represents where the tick will be placed visually.
-     * Notice:
-     * The value is not the raw ordinal value. And do not changed
-     * after ordinal scale sorted.
-     * We need to:
-     * ```js
-     * const coord = dataToCoord(ordinalScale.getRawOrdinalNumber(tick.value)).
-     * ```
-     * Why place the tick value here rather than the raw ordinal value (like LogScale did)?
-     * Because ordinal scale sort is the different case from LogScale, where
-     * axis tick, splitArea should better not to be sorted, especially in
-     * anid(animation id) when `boundaryGap: true`.
-     * Only axis label are sorted.
-     */
-    value: number
 };
 
 /**

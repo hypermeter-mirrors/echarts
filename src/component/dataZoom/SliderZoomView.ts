@@ -47,7 +47,6 @@ import tokens from '../../visual/tokens';
 import { isOrdinalScale, isTimeScale } from '../../scale/helper';
 import { AxisProxyWindow } from './AxisProxy';
 import type Scale from '../../scale/Scale';
-import { SCALE_EXTENT_KIND_EFFECTIVE } from '../../scale/scaleMapper';
 
 
 const Rect = graphic.Rect;

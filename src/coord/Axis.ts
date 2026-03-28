@@ -39,6 +39,7 @@ import {
 import { AxisBaseModel } from './AxisBaseModel';
 import { isOrdinalScale } from '../scale/helper';
 import { calcBandWidth } from './axisBand';
+import { getTickValueOutermost } from './axisHelper';
 
 const NORMALIZED_EXTENT = [0, 1] as [number, number];
 
@@ -176,13 +177,8 @@ class Axis {
             pruneByBreak: opt.pruneByBreak,
         });
         const preTicksCoords = map(result.ticks, function (tick) {
-            const tickValue = tick.value;
             return {
-                coord: this.dataToCoord(
-                    isOrdinalScale(this.scale)
-                        ? (this.scale as OrdinalScale).getRawOrdinalNumber(tickValue)
-                        : tickValue
-                ),
+                coord: this.dataToCoord(getTickValueOutermost(this.scale, tick)),
                 tick,
             };
         }, this);

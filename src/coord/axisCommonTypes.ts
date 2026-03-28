@@ -27,6 +27,7 @@ import {
     TimeScaleTick,
     RichTextOption,
     LabelCommonOption,
+    ScaleTick,
 } from '../util/types';
 import type { PrimaryTimeUnit } from '../util/time';
 
@@ -392,13 +393,17 @@ interface SplitAreaOption {
  * every three; and so one.
  */
 type CategoryTickLabelSplitIntervalOption =
-    'auto' | number | ((index: number, value: string) => boolean) | NullUndefined;
+    'auto' | number | CategoryTickLabelSplitIntervalCb | NullUndefined;
+
+export type CategoryTickLabelSplitIntervalCb = (
+    linearTickValue: number, // tick value before sorted. "sort" means `OrdinalScale['setSortInfo']`.
+    rawLabel: string
+) => boolean;
 
 export type CategoryTickLabelSplitBuildingOption = {
     show?: boolean,
     interval?: CategoryTickLabelSplitIntervalOption,
 };
-
 
 export type AxisBaseOption = ValueAxisBaseOption | LogAxisBaseOption
     | CategoryAxisBaseOption | TimeAxisBaseOption;

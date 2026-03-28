@@ -58,6 +58,7 @@ import { convertToColorString } from '../../util/format';
 import { warnDeprecated } from '../../util/styleCompat';
 import { lerp } from 'zrender/src/tool/color';
 import Element from 'zrender/src/Element';
+import { getTickValueOutermost } from '../../coord/axisHelper';
 
 
 type PolarArea = ReturnType<Polar['getArea']>;
@@ -398,10 +399,8 @@ function getIsIgnoreFunc(
     const labelMap: Dictionary<1> = {};
 
     zrUtil.each(categoryAxis.getViewLabels(), function (labelItem) {
-        const ordinalNumber = (categoryAxis.scale as OrdinalScale)
-            .getRawOrdinalNumber(labelItem.tick.value);
         if (!labelItem.tick.offInterval) {
-            labelMap[ordinalNumber] = 1;
+            labelMap[getTickValueOutermost(categoryAxis.scale, labelItem.tick)] = 1;
         }
     });
 

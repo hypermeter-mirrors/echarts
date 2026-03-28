@@ -37,13 +37,16 @@ import {
     SCALE_VALUE_POSITION_KIND_OUTSIDE,
     SCALE_VALUE_POSITION_KIND_EDGE,
     SCALE_VALUE_POSITION_KIND_INSIDE,
+    getTickValueOutermost,
 } from '../../coord/axisHelper';
 import Cartesian2D, {cartesian2DDimensions} from './Cartesian2D';
 import Axis2D from './Axis2D';
 import {ParsedModelFinder, ParsedModelFinderKnown, SINGLE_REFERRING} from '../../util/model';
 
 // Depends on GridModel, AxisModel, which performs preprocess.
-import GridModel, { COORD_SYS_TYPE_CARTESIAN_2D, GridOption, OUTER_BOUNDS_CLAMP_DEFAULT, OUTER_BOUNDS_DEFAULT } from './GridModel';
+import GridModel, {
+    COORD_SYS_TYPE_CARTESIAN_2D, GridOption, OUTER_BOUNDS_CLAMP_DEFAULT, OUTER_BOUNDS_DEFAULT
+} from './GridModel';
 import CartesianAxisModel from './AxisModel';
 import GlobalModel from '../../model/Global';
 import ExtensionAPI from '../../core/ExtensionAPI';
@@ -873,7 +876,9 @@ function layOutGridByOuterBounds(
             if (labelInfoList) {
                 for (let idx = 0; idx < labelInfoList.length; idx++) {
                     const labelInfo = labelInfoList[idx];
-                    let proportion = axis.scale.normalize(getLabelInner(labelInfo.label).labelInfo.tick.value);
+                    let proportion = axis.scale.normalize(
+                        getTickValueOutermost(axis.scale, getLabelInner(labelInfo.label).labelInfo.tick)
+                    );
                     proportion = xyIdx === 1 ? 1 - proportion : proportion;
                     // xAxis use proportion on x, yAxis use proprotion on y, otherwise not.
                     fillMarginOnOneDimension(labelInfo.rect, xyIdx, proportion);

@@ -26,10 +26,12 @@ import type IntervalScale from './Interval';
 import type LogScale from './Log';
 import type Scale from './Scale';
 import type TimeScale from './Time';
-import { NullUndefined } from '../util/types';
+import { NullUndefined, OrdinalNumber, ScaleTick } from '../util/types';
 import type OrdinalScale from './Ordinal';
 import type { ScaleExtentFixMinMax } from '../coord/scaleRawExtentInfo';
 import { isValidNumberForExtent } from '../util/model';
+import { getScaleExtentForTickUnsafe } from './scaleMapper';
+
 
 type intervalScaleNiceTicksResult = {
     interval: number,
@@ -265,4 +267,55 @@ export function ensureValidSplitNumber(
 ): number {
     rawSplitNumber = rawSplitNumber || defaultSplitNumber;
     return mathRound(mathMax(rawSplitNumber, 1));
+}
+
+/**
+ * NOTE: The result can have only one item, e.g., when `extent[0] === extent[1]`
+ * and `categoryInterval === 0`.
+ */
+export function ordinalScaleCreateTicks(
+    ordinalScale: OrdinalScale,
+    // `categoryInterval` is the number part of `CategoryTickLabelSplitIntervalOption`.
+    categoryInterval: number,
+    addItem: (
+        tick: ScaleTick,
+        isExtentBoundary: boolean
+    ) => void,
+) {
+    const extent = getScaleExtentForTickUnsafe(ordinalScale);
+    let startTick = extent[0];
+    const tickCount = ordinalScale.count();
+    const step = Math.max((categoryInterval || 0) + 1, 1);
+
+    // Calculate start tick based on zero if possible to keep label consistent
+    // while zooming and moving while interval > 0. Otherwise the selection
+    // of displayable ticks and symbols probably keep changing.
+    if (startTick !== 0 && step > 1 && tickCount / step > 2) {
+        startTick = Math.round(Math.ceil(startTick / step) * step);
+    }
+
+    // min max labels may be excluded if `startTick > 0`, but they should be always
+    // included and the label display strategy is adopted uniformly later in `AxisBuilder`.
+    if (startTick !== extent[0]) {
+        addItemInternally(extent[0], true, true);
+    }
+
+    let tickValue = startTick;
+    for (; tickValue <= extent[1]; tickValue += step) {
+        addItemInternally(tickValue, false, tickValue === extent[0] || tickValue === extent[1]);
+    }
+
+    if (tickValue - step !== extent[1]) {
+        addItemInternally(extent[1], true, true);
+    }
+
+    function addItemInternally(tickValue: number, offInterval: boolean, isExtentBoundary: boolean): void {
+        addItem(
+            {
+                value: tickValue,
+                offInterval,
+            },
+            isExtentBoundary
+        );
+    }
 }

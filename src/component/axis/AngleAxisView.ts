@@ -31,6 +31,7 @@ import { ZRTextAlign, ZRTextVerticalAlign, ColorString } from '../../util/types'
 import { getECData } from '../../util/innerStore';
 import OrdinalScale from '../../scale/Ordinal';
 import { AxisLabelBaseOptionNuance } from '../../coord/axisCommonTypes';
+import { getTickValueOutermost } from '../../coord/axisHelper';
 
 const elementList = [
     'axisLine',
@@ -97,14 +98,15 @@ class AngleAxisView extends AxisView {
         const ticksAngles = angleAxis.getTicksCoords({breakTicks: 'none'});
         const minorTickAngles = angleAxis.getMinorTicksCoords();
 
-        const labels = zrUtil.map(angleAxis.getViewLabels(), function (labelItem: TickLabel) {
+        const labels: TickLabel[] = [];
+        zrUtil.each(angleAxis.getViewLabels(), function (labelItem: TickLabel) {
+            if (labelItem.tick.offInterval) {
+                return;
+            }
             labelItem = zrUtil.clone(labelItem);
             const scale = angleAxis.scale;
-            const tickValue = scale.type === 'ordinal'
-                ? (scale as OrdinalScale).getRawOrdinalNumber(labelItem.tick.value)
-                : labelItem.tick.value;
-            labelItem.coord = angleAxis.dataToCoord(tickValue);
-            return labelItem;
+            labelItem.coord = angleAxis.dataToCoord(getTickValueOutermost(scale, labelItem.tick));
+            labels.push(labelItem);
         });
 
         fixAngleOverlap(labels);

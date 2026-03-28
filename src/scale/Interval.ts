@@ -211,16 +211,11 @@ class IntervalScale extends Scale<IntervalScale> {
         const safeLimit = 10000;
 
         if (extent[0] < niceExtent[0]) {
-            if (opt.expandToNicedExtent) {
-                ticks.push({
-                    value: round(niceExtent[0] - interval, intervalPrecision)
-                });
-            }
-            else {
-                ticks.push({
-                    value: extent[0]
-                });
-            }
+            ticks.push({
+                value: opt.expandToNicedExtent
+                    ? round(niceExtent[0] - interval, intervalPrecision)
+                    : extent[0]
+            });
         }
 
         const estimateNiceMultiple = (tickVal: number, targetTick: number) => {
@@ -254,9 +249,7 @@ class IntervalScale extends Scale<IntervalScale> {
                 }
             }
 
-            ticks.push({
-                value: tick
-            });
+            ticks.push({value: tick});
 
             // Avoid rounding error
             tick = round(tick + interval, intervalPrecision);
@@ -282,16 +275,11 @@ class IntervalScale extends Scale<IntervalScale> {
         // than niceExtent[1] and niceExtent[1] === extent[1].
         const lastNiceTick = ticks.length ? ticks[ticks.length - 1].value : niceExtent[1];
         if (extent[1] > lastNiceTick) {
-            if (opt.expandToNicedExtent) {
-                ticks.push({
-                    value: round(lastNiceTick + interval, intervalPrecision)
-                });
-            }
-            else {
-                ticks.push({
-                    value: extent[1]
-                });
-            }
+            ticks.push({
+                value: opt.expandToNicedExtent
+                    ? round(lastNiceTick + interval, intervalPrecision)
+                    : extent[1]
+            });
         }
 
         if (brkAvailable) {
@@ -321,17 +309,17 @@ class IntervalScale extends Scale<IntervalScale> {
     }
 
     getLabel(
-        data: ScaleTick,
+        tick: ScaleTick,
         opt?: IntervalScaleGetLabelOpt
     ): string {
-        if (data == null) {
+        if (tick == null) {
             return '';
         }
 
         let precision = opt && opt.precision;
 
         if (precision == null) {
-            precision = getPrecision(data.value) || 0;
+            precision = getPrecision(tick.value) || 0;
         }
         else if (precision === 'auto') {
             // Should be more precise then tick.
@@ -340,7 +328,7 @@ class IntervalScale extends Scale<IntervalScale> {
 
         // (1) If `precision` is set, 12.005 should be display as '12.00500'.
         // (2) Use `round` (toFixed) to avoid scientific notation like '3.5e-7'.
-        const dataNum = round(data.value, precision as number, true);
+        const dataNum = round(tick.value, precision as number, true);
 
         return addCommas(dataNum);
     }

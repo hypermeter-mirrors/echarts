@@ -33,6 +33,7 @@ import {createSymbol, normalizeSymbolOffset} from '../../util/symbol';
 import * as matrixUtil from 'zrender/src/core/matrix';
 import {applyTransform as v2ApplyTransform} from 'zrender/src/core/vector';
 import {
+    getTickValueOutermost,
     isNameLocationCenter, shouldShowAllLabels,
 } from '../../coord/axisHelper';
 import { AxisBaseModel } from '../../coord/AxisBaseModel';
@@ -1380,14 +1381,11 @@ function buildAxisLabel(
 
     each(labels, function (labelItem, index) {
         const labelItemTick = labelItem.tick;
-        const labelItemTickValue = labelItemTick.value;
-        const tickValue = axis.scale.type === 'ordinal'
-            ? (axis.scale as OrdinalScale).getRawOrdinalNumber(labelItemTickValue)
-            : labelItemTickValue;
         const formattedLabel = labelItem.formattedLabel;
         const rawLabel = labelItem.rawLabel;
 
         let itemLabelModel = labelModel;
+        const tickValue = getTickValueOutermost(axis.scale, labelItemTick);
         if (rawCategoryData && rawCategoryData[tickValue]) {
             const rawCategoryItem = rawCategoryData[tickValue];
             if (isObject(rawCategoryItem) && rawCategoryItem.textStyle) {
@@ -1564,7 +1562,8 @@ function updateAxisLabelChangableProps(
         labelEl.ignore = false;
 
         copyTransform(_tmpLayoutEl, _tmpLayoutElReset);
-        _tmpLayoutEl.x = axisModel.axis.dataToCoord(inner.labelInfo.tick.value);
+        const axis = axisModel.axis;
+        _tmpLayoutEl.x = axis.dataToCoord(getTickValueOutermost(axis.scale, inner.labelInfo.tick));
         _tmpLayoutEl.y = cfg.labelOffset + cfg.labelDirection * labelMargin;
         _tmpLayoutEl.rotation = inner.layoutRotation;
 

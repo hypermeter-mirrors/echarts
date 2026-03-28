@@ -23,6 +23,7 @@ import {
     ScaleDataValue,
     ScaleTick,
     NullUndefined,
+    ParsedValueNumeric,
 } from '../util/types';
 import { ScaleRawExtentInfo } from '../coord/scaleRawExtentInfo';
 import { BreakScaleMapper, ParamPruneByBreak } from './break';
@@ -65,19 +66,23 @@ abstract class Scale<
     readonly rawExtentInfo: ScaleRawExtentInfo | NullUndefined;
 
     /**
+     * Parse input `val` (typicall from ec option or API) to its corresponding
+     * numeric representation.
+     *
      * NOTICE:
+     *  - The implementation must have no side-effect.
      *  - Must be available in constructor.
      *  - Must ensure the return is a number.
-     *    null/undefined is not allowed.
+     *    `null`/`undefined` is not allowed.
      *    `NaN` represents invalid data.
-     *
-     * Parse input val to valid inner number.
-     * Notice: This would be a trap here, If the implementation
-     * of this method depends on extent, and this method is used
-     * before extent set (like in dataZoom), it would be wrong.
-     * Nevertheless, parse does not depend on extent generally.
+     *  - Regarding `extent`:
+     *    - In `OrdinalScale`, the extent and `ordinalMeta` has been finally determined
+     *      before the constructor being called, and parse can reply on them
+     *    - In other scales, the extent is not finally determined, and `parse` must not
+     *      rely on them, otherwise, the result would be wrong if it is used earlier
+     *      (like in `dataZoom`).
      */
-    parse: (val: ScaleDataValue) => number;
+    parse: (val: ScaleDataValue) => ParsedValueNumeric;
 
     /**
      * When axis extent depends on data and no data exists,

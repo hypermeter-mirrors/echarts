@@ -471,6 +471,9 @@ class SliderTimelineView extends TimelineView {
         this._tickLabels = [];
 
         each(labels, (labelItem) => {
+            if (labelItem.tick.offInterval) {
+                return;
+            }
             // The tickValue is dataIndex, see the customized scale.
             const dataIndex = labelItem.tick.value;
 

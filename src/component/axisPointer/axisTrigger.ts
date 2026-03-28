@@ -22,7 +22,9 @@ import * as modelHelper from './modelHelper';
 import findPointFromSeries from './findPointFromSeries';
 import GlobalModel from '../../model/Global';
 import ExtensionAPI from '../../core/ExtensionAPI';
-import { Dictionary, Payload, CommonAxisPointerOption, HighlightPayload, DownplayPayload } from '../../util/types';
+import {
+    Dictionary, Payload, CommonAxisPointerOption, HighlightPayload, DownplayPayload, ScaleDataValue
+} from '../../util/types';
 import AxisPointerModel, { AxisPointerOption } from './AxisPointerModel';
 import { each, curry, bind, extend, Curry1 } from 'zrender/src/core/util';
 import { ZRenderType } from 'zrender/src/zrender';
@@ -43,8 +45,7 @@ interface DataIndex {
 type BatchItem = DataIndex;
 
 export interface DataByAxis {
-    // TODO: TYPE Value type
-    value: string | number
+    value: ScaleDataValue
     axisIndex: number
     axisDim: string
     axisType: string
@@ -367,7 +368,7 @@ function showTooltip(
         axisIndex: axisModel.componentIndex,
         axisType: axisModel.type,
         axisId: axisModel.id,
-        value: value as number,
+        value: value,
         // Caution: viewHelper.getValueLabel is actually on "view stage", which
         // depends that all models have been updated. So it should not be performed
         // here. Considering axisPointerModel used here is volatile, which is hard
