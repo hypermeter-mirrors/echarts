@@ -61,24 +61,71 @@ under the License.
                 // 'theme/dark.js', // auto register if load.
             ], function (echarts /*, data */) {
 
-                var option = {
-                    xAxis: {},
-                    yAxis: {},
-                    series: {
-                        type: 'scatter',
-                        symbolSize: 50,
-                        label: {show: true, position: 'top'},
-                        data: [[1, 2], [100, 200], [500, 50]]
+                var _ctx = {
+                    series0Type: {
+                        value: 'line',
+                        values: ['line', 'scatter', 'bar']
+                    },
+                    useDataZoom: {
+                        value: false,
+                        values: [false, true],
+                    },
+                    yAxisMax: {
+                        value: 'NOT_SET',
+                        values: ['NOT_SET', 1000, 500]
                     }
                 };
+
+                function createOption() {
+                    var option = {
+                        xAxis: {},
+                        yAxis: {
+
+                        },
+                        series: {
+                            type: _ctx.series0Type.value,
+                            symbolSize: 50,
+                            label: {
+                                show: true,
+                                position: 'top'
+                            },
+                            data: [[1, 2], [100, 200], [500, 50]]
+                        }
+                    };
+
+                    if (_ctx.yAxisMax.value !== 'NOT_SET') {
+                        option.yAxis.max = _ctx.yAxisMax.value;
+                    }
+                    if (_ctx.useDataZoom.value) {
+                        option.dataZoom = [{
+                            type: 'inside'
+                        }, {
+                            type: 'slider'
+                        }];
+                    }
+
+                    return option;
+                }
+
+                function updateChart() {
+                    chart.setOption(createOption(), {notMerge: true});
+                }
 
                 var chart = testHelper.create(echarts, '{{TPL_DOM_ID}}', {
                     title: [
                         'Test Case Description of {{TPL_DOM_ID}}',
                         '(Multiple lines and **emphasis** are supported in description)'
                     ],
-                    option: option
-                });
+                    option: createOption(),
+
+                    // ==============================================================
+                    // !      Delete the content below if you do not need them      !
+                    inputsStyle: 'compact',
+                    inputs: testHelper.createInputsSimply(_ctx, updateChart)
+                    // !      Delete the content above if you do not need them      !
+                    // ==============================================================
+
+                }); // End of `testHelper.create`
 
             }); // End of `require`
 

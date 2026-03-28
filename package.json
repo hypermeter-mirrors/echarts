@@ -59,6 +59,8 @@
     "test:dts": "npm install --prefix ./test/types && node build/testDts.js",
     "test:dts:fast": "node build/testDts.js",
     "mktest": "node test/build/mktest.js",
+    "mktest2": "node test/build/mktest.js --with-inputs-common",
+    "mktest3": "node test/build/mktest.js --with-inputs-all",
     "mktest:help": "node test/build/mktest.js -h",
     "checktype": "tsc --noEmit",
     "checkheader": "node build/checkHeader.js",
