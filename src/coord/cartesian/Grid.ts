@@ -23,7 +23,7 @@
  * TODO Default cartesian
  */
 
-import {isObject, each, indexOf, retrieve3, keys, assert, eqNaN, find, retrieve2} from 'zrender/src/core/util';
+import {isObject, each, indexOf, retrieve3, keys, assert, eqNaN, find, retrieve2, hasOwn} from 'zrender/src/core/util';
 import {BoxLayoutReferenceResult, createBoxLayoutReference, getLayoutRect, LayoutRect} from '../../util/layout';
 import {
     createScaleByModel,
@@ -655,7 +655,7 @@ function fixAxisOnZero(
     else {
         // Find the first available other axis.
         for (const idx in otherAxes) {
-            if (otherAxes.hasOwnProperty(idx)
+            if (hasOwn(otherAxes, idx)
                 && canOnZeroToAxis(onZero, otherAxes[idx])
                 // Consider that two Y axes on one value axis,
                 // if both onZero, the two Y axes overlap.
@@ -681,8 +681,11 @@ function fixAxisOnZero(
  */
 function canOnZeroToAxis(
     onZeroOption: AxisBaseOptionCommon['axisLine']['onZero'],
-    axis: Axis2D
+    axis: Axis2D | NullUndefined
 ): boolean {
+    if (!axis) {
+        return false;
+    }
     const scale = axis.scale;
     const kindEffective = getScaleValuePositionKind(scale, 0, false);
 

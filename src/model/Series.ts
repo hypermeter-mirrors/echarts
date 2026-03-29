@@ -477,7 +477,11 @@ class SeriesModel<Opt extends SeriesOption = SeriesOption> extends ComponentMode
         let minDiff = -1;
         let nearestIndicesLen = 0;
 
-        data.each(dim, (dimValue, idx) => {
+        // Performance-sensitive on large data (triggered by `tooltip`/`axisPointer` frequently).
+        const dimIdx = data.getDimensionIndex(dim);
+        const store = data.getStore();
+        for (let idx = 0, len = store.count(); idx < len; idx++) {
+            const dimValue = store.get(dimIdx, idx);
             const dataCoord = axis.dataToCoord(dimValue);
             const diff = targetCoord - dataCoord;
             const dist = Math.abs(diff);
@@ -499,7 +503,8 @@ class SeriesModel<Opt extends SeriesOption = SeriesOption> extends ComponentMode
                     nearestIndices[nearestIndicesLen++] = idx;
                 }
             }
-        });
+        }
+
         nearestIndices.length = nearestIndicesLen;
         return nearestIndices;
     }
