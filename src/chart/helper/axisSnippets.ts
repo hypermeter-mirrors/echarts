@@ -33,7 +33,7 @@ import { ComponentSubType } from '../../util/types';
 export function createBandWidthBasedAxisContainShapeHandler(axisStatKey: AxisStatKey): AxisContainShapeHandler {
     return function (axis, scale, ecModel) {
         const bandWidthResult = calcBandWidth(axis, {fromStat: {key: axisStatKey}});
-        const invRatio = (bandWidthResult.fromStat || {}).invRatio;
+        const invRatio = bandWidthResult.invRatio;
         if (isNullableNumberFinite(invRatio) && isNullableNumberFinite(bandWidthResult.w)) {
             return [-bandWidthResult.w / 2 * invRatio, bandWidthResult.w / 2 * invRatio];
         }

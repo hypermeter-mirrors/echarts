@@ -532,7 +532,8 @@ function createIntervalTicks(
         // This extra tick is for calculating ticks of next level. Will not been added to the final result
         out.push({
             value: dateTime,
-            notAdd: true
+            // extent[1] should be added; deduplication will be performed later.
+            notAdd: dateTime > extent[1]
         });
     }
 

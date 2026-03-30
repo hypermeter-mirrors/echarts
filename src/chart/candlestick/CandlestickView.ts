@@ -127,8 +127,8 @@ class CandlestickView extends ChartView {
                     const el = createNormalBox(itemLayout, newIdx, transPointDim, true);
                     graphic.initProps(el, {shape: {points: itemLayout.ends}}, seriesModel, newIdx);
 
-                    // In some edge cases (e.g., single item with min/max set), the disappearance of
-                    // items may confuse users if no clipping is applied.
+                    // When an item is partially inside and partially outside the Cartesian bounding rect,
+                    // the disappearance of the entire item may confuse users. Therefore, clipping is needed.
                     // Consider performance of zr Element['clipPath'], only set to partially clipped elements.
                     updateClipPath(clipKind === SHAPE_CLIP_KIND_PARTIALLY_CLIPPED, el, clipPath);
 

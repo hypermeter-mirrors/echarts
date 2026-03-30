@@ -39,12 +39,10 @@ export type AxisBandWidthResult = {
     // May be NaN if no meaningfull `bandWidth`. But it's unlikely to be NaN, since edge cases
     // are handled internally whenever possible.
     w: number;
-    // Exists if `bandWidth` is calculated by `fromStat`.
-    fromStat?: {
-        // This is a ratio from pixel span to data span; The conversion can not be performed
-        // if it is not valid, typically when only one or no series data item exists on the axis.
-        invRatio?: number | NullUndefined;
-    };
+    // This is a ratio from pixel span to data span.
+    // Note that the conversion can not be performed if it is not valid, typically when only
+    // one or no series data item exists on the axis.
+    invRatio?: number | NullUndefined;
 };
 
 /**
@@ -128,12 +126,20 @@ function calcBandWidthForCategoryAxis(
 ): void {
     const axisExtent = axis.getExtent();
     const dataExtent = scale.getExtent();
+    const pxSpan = mathAbs(axisExtent[1] - axisExtent[0]);
+    const linearScaleSpan = dataExtent[1] - dataExtent[0];
+    const onBand = axis.onBand;
 
-    let len = dataExtent[1] - dataExtent[0] + (axis.onBand ? 1 : 0);
+    let len = linearScaleSpan + (onBand ? 1 : 0);
     // Fix #2728, avoid NaN when only one data.
     len === 0 && (len = 1);
 
-    out.w = mathAbs(axisExtent[1] - axisExtent[0]) / len;
+    out.w = pxSpan / len;
+    if (!onBand) {
+        out.invRatio = linearScaleSpan / pxSpan;
+    }
+    // `onBand: true` (`boundaryGap: true`) does not need to support `containShape`,
+    // thereby no `invRatio`.
 }
 
 /**
@@ -196,5 +202,5 @@ function calcBandWidthForNumericAxis(
     }
 
     out.w = bandWidth;
-    out.fromStat = {invRatio};
+    out.invRatio = invRatio;
 }

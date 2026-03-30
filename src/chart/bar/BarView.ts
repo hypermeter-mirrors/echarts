@@ -93,14 +93,18 @@ type RealtimeSortConfig = {
 // Return a number, based on which the ordinal sorted.
 type OrderMapping = (dataIndex: number) => number;
 
-function getClipArea(coord: CoordSysOfBar, data: SeriesData) {
+function createClipArea(coord: CoordSysOfBar, data: SeriesData) {
     const coordSysClipArea = coord.getArea && coord.getArea();
     if (isCoordinateSystemType<Cartesian2D>(coord, 'cartesian2d')) {
         const baseAxis = coord.getBaseAxis();
         // When boundaryGap is false in category axis, bar may exceed the grid.
         // We should not clip this part.
         // See test/bar2.html
-        // PENDING: The effect is not preferable, but we preserve it for backward compatibility.
+        // FIXME:
+        //  When bar series lay out on `boundaryGap: false`, the effect is not
+        //  preferable - edge bars will overflow the Cartesian area.
+        //  It may be optimized following the way used in candlestick
+        //  (using `registerAxisContainShapeHandler`).
         if (baseAxis.type === 'category' && !baseAxis.onBand) {
             const expandWidth = data.getLayout('bandWidth');
             if (baseAxis.isHorizontal()) {
@@ -222,7 +226,7 @@ class BarView extends ChartView {
         }
 
         const needsClip = seriesModel.get('clip', true) || realtimeSortCfg;
-        const coordSysClipArea = getClipArea(coord, data);
+        const coordSysClipArea = createClipArea(coord, data);
         // If there is clipPath created in large mode. Remove it.
         group.removeClipPath();
         // We don't use clipPath in normal mode because we needs a perfect animation
@@ -697,12 +701,12 @@ class BarView extends ChartView {
 }
 
 interface Clipper {
-    (coordSysBoundingRect: PolarCoordArea | CartesianCoordArea, layout: RectLayout | SectorLayout): boolean
+    (coordSysClipArea: PolarCoordArea | CartesianCoordArea, layout: RectLayout | SectorLayout): boolean
 }
 const clip: {
     [key in 'cartesian2d' | 'polar']: Clipper
 } = {
-    cartesian2d(coordSysBoundingRect: CartesianCoordArea, layout: Rect['shape']) {
+    cartesian2d(coordSysClipArea: CartesianCoordArea, layout: Rect['shape']) {
         const signWidth = layout.width < 0 ? -1 : 1;
         const signHeight = layout.height < 0 ? -1 : 1;
         // Needs positive width and height
@@ -715,11 +719,11 @@ const clip: {
             layout.height = -layout.height;
         }
 
-        const coordSysX2 = coordSysBoundingRect.x + coordSysBoundingRect.width;
-        const coordSysY2 = coordSysBoundingRect.y + coordSysBoundingRect.height;
-        const x = mathMax(layout.x, coordSysBoundingRect.x);
+        const coordSysX2 = coordSysClipArea.x + coordSysClipArea.width;
+        const coordSysY2 = coordSysClipArea.y + coordSysClipArea.height;
+        const x = mathMax(layout.x, coordSysClipArea.x);
         const x2 = mathMin(layout.x + layout.width, coordSysX2);
-        const y = mathMax(layout.y, coordSysBoundingRect.y);
+        const y = mathMax(layout.y, coordSysClipArea.y);
         const y2 = mathMin(layout.y + layout.height, coordSysY2);
 
         const xClipped = x2 < x;

@@ -537,7 +537,7 @@ function calcShapeOverflowSupplement(
         return;
     }
     const bandWidthResult = columnLayout.bandWidthResult;
-    const invRatio = (bandWidthResult.fromStat || {}).invRatio;
+    const invRatio = bandWidthResult.invRatio;
     if (!isNullableNumberFinite(invRatio)) {
         return; // No series data or no more than one distinct valid data values.
     }
