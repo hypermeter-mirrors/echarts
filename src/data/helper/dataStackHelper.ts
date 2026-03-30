@@ -39,6 +39,8 @@ type EnableDataStackDimensionsInputLegacy = (SeriesDimensionDefine | string)[];
  * (have to create two-dimension inverted index), so in 3d case
  * we just support that stacked by index.
  *
+ * Stack is calculated in `src/processor/dataStack.ts`.
+ *
  * @param seriesModel
  * @param dimensionsInput The same as the input of <module:echarts/data/SeriesData>.
  *        The input will be modified.

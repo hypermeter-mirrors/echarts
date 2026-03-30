@@ -31,7 +31,7 @@ import {
     OptionEncodeValue,
     ColorBy,
     StatesOptionMixin,
-    DimensionLoose
+    DimensionLoose,
 } from '../util/types';
 import ComponentModel, { ComponentModelConstructor } from './Component';
 import {PaletteMixin} from './mixin/palette';
@@ -60,6 +60,7 @@ import {Group} from '../util/graphic';
 import {LegendIconParams} from '../component/legend/LegendModel';
 import {dimPermutations} from '../component/marker/MarkAreaView';
 import type ChartView from '../view/Chart';
+import { AxisBaseOptionCommon } from '../coord/axisCommonTypes';
 
 const inner = modelUtil.makeInner<{
     data: SeriesData
@@ -74,19 +75,28 @@ function getSelectionKey(data: SeriesData, dataIndex: number): string {
 export const SERIES_UNIVERSAL_TRANSITION_PROP = '__universalTransitionEnabled';
 
 /**
- * Implement it only if needed.
+ * NOTICE:
+ *  - prefix `__` can be used to avoid conflicts with possible outside subclasses.
+ *  - All of these methods are optional - null-check is needed.
  */
 interface SeriesModel {
 
     preventIncremental(): boolean;
 
-    /**
-     * (Use `__` prefix to avoid conflicts with possible subclasses)
-     */
     __preparePipelineContext(
         view: ChartView,
         pipeline: Pick<Pipeline, 'progressiveEnabled' | 'threshold'>
     ): PipelineContext;
+
+    /**
+     * If `true`, a default `startValue` (`0`) is used if not specified in ec option,
+     * and axis extent will union it.
+     * Otherwise, `startValue` will be included in the union of axis extent only if
+     * it is explicitly specified in ec option.
+     *
+     * @see {AxisBaseOptionCommon['startValue']} for more info.
+     */
+    __requireStartValue(axis: Axis): boolean;
 
     /**
      * See tooltip.

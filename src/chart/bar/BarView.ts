@@ -1201,7 +1201,7 @@ function createLarge(
     el.barWidth = barWidth;
     group.add(el);
     el.useStyle(data.getVisual('style'));
-    // Stroke is rendered first to avoid overlapping with fill
+    // Stroke is rendered first to avoid overlapping with fill. See #20465
     el.style.stroke = null;
     // Enable tooltip and user mouse/touch event handlers.
     getECData(el).seriesIndex = seriesModel.seriesIndex;

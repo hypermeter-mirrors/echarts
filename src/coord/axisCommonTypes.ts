@@ -27,7 +27,6 @@ import {
     TimeScaleTick,
     RichTextOption,
     LabelCommonOption,
-    ScaleTick,
 } from '../util/types';
 import type { PrimaryTimeUnit } from '../util/time';
 
@@ -114,6 +113,16 @@ export interface AxisBaseOptionCommon extends ComponentOption,
      * + null/undefined: auto decide max value (consider pretty look and boundaryGap).
      */
     max?: ScaleDataValue | 'dataMax' | ((extent: {min: number, max: number}) => ScaleDataValue | NullUndefined);
+    /**
+     * This is the start value of shape, such as bar. 0 by default.
+     * `startValue` will be included in axis scale extent union.
+     *
+     * PENDING:
+     *  - Currently, LineSeries with areaStyle does not use this `startValue`.
+     *    They can be supported if required.
+     *  - The current behavior is problematic in "stack" case. (See `test/bar-startValue.html`).
+     *    But no need to support it until concrete requirements arise.
+     */
     startValue?: number;
 
     jitter?: number;

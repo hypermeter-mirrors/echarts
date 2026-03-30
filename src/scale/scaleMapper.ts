@@ -83,7 +83,8 @@ const SCALE_MAPPER_METHOD_NAMES_MAP: Record<keyof ScaleMapper, 1> = {
     setExtent: 1,
     setExtent2: 1,
     getFilter: 1,
-    sanitize: 1,
+    sanitizeExtent: 1,
+    getDefaultStartValue: 1,
     freeze: 1,
 };
 const SCALE_MAPPER_METHOD_NAMES = keys(SCALE_MAPPER_METHOD_NAMES_MAP);
@@ -256,15 +257,21 @@ export interface ScaleMapperGeneric<This> {
 
     /**
      * NOTICE:
-     *  Should not sanitize invalid values (e.g., NaN, Infinity, null, undefined),
-     *  since it probably has special meaning, and always properly handled in every Scale.
+     *  - Should not sanitize invalid values (e.g., NaN, Infinity, null, undefined),
+     *    since it probably has special meaning, and always properly handled in every Scale.
+     *  - Should not depend on extent, since it can be used before extent determined.
      *
-     * Sanitize the value if possible. For example, for LogScale, the negative part will be clampped.
+     * Sanitize the extent if possible. For example, for LogScale, the negative part will be clampped.
      * This provides some permissiveness to ec option like `xxxAxis.min/max`.
      */
-    sanitize?: (
-        (this: This, values: number | NullUndefined, dataExtent: number[]) => number | NullUndefined
+    sanitizeExtent?: (
+        (this: This, targetExtent: number[], dataExtent: number[]) => void
     ) | NullUndefined;
+
+    /**
+     * If not provided, use `0`.
+     */
+    getDefaultStartValue?: (() => number) | NullUndefined;
 
     /**
      * Restrict the modification behavior of a scale for robustness. e.g., avoid subsequently

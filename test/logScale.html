@@ -354,20 +354,23 @@ under the License.
                     xAxis: {
                         data: ['2017-10-24', '2017-10-25', '2017-10-26', '2017-10-27']
                     },
-                    yAxis: {},
-                    series: [
-                        {
+                    yAxis: {
+                        type: 'log',
+                    },
+                    legend: {},
+                    series: [{
+                        name: 'A',
                         type: 'candlestick',
                         data: [
-                            ['0.000000000012', '0.000000000034', '0.000000000010', '0.000000000038']
+                            ['0.000000000012', '0.000000000034', '0.000000000010', '0.000000000038'],
+                            ['0.000000000032', '0.000000000054', '0.000000000015', '0.000000000058']
                         ]
-                        }
-                    ]
-                    };
+                    }]
+                };
 
                 var chart = testHelper.create(echarts, 'main3', {
                     title: [
-                        'Test Case Description of main0'
+                        'boxplot in LogScale'
                     ],
                     option: option,
                 });

@@ -35,6 +35,7 @@ import { each } from 'zrender/src/core/util';
 import type Axis2D from '../../coord/cartesian/Axis2D';
 import type Model from '../../model/Model';
 import { CategoryAxisBaseOption } from '../../coord/axisCommonTypes';
+import type Axis from '../../coord/Axis';
 
 
 export interface BaseBarSeriesOption<StateOption, ExtraStateOption extends StatesMixinBase = DefaultStatesMixin>
@@ -187,6 +188,13 @@ class BaseBarSeriesModel<Opts extends BaseBarSeriesOption<unknown> = BaseBarSeri
             return pt;
         }
         return [NaN, NaN];
+    }
+
+    /**
+     * @implements
+     */
+    __requireStartValue(axis: Axis): boolean {
+        return this.getBaseAxis() !== axis;
     }
 
     static defaultOption: BaseBarSeriesOption<unknown, unknown> = {

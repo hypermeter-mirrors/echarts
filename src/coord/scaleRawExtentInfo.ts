@@ -43,7 +43,7 @@ import {
 import type GlobalModel from '../model/Global';
 import { error } from '../util/log';
 import type Axis from './Axis';
-import { mathMax, mathMin } from '../util/number';
+import { isNullableNumberFinite, mathMax, mathMin } from '../util/number';
 import { SCALE_EXTENT_KIND_MAPPING } from '../scale/scaleMapper';
 import { AxisStatKey, eachKeyOnAxis, eachSeriesOnAxis } from './axisStatistics';
 
@@ -153,7 +153,10 @@ interface ScaleRawExtentInternal {
     // It indicates that the min max have been fixed by `dataZoom` when its start/end is not 0%/100%.
     zoomFixMM: ScaleExtentFixMinMax;
 
-    startValue: number;
+    // Parsed from `AxisBaseOptionCommon['startValue'`]`.
+    // If it is not explicitly specified in ec option, and no series has a true return
+    // of `__requireStartValue()`, it will be a null/undefined.
+    startValue: number | NullUndefined;
 
     // Mark that the axis should be blank.
     isBlank: boolean;
@@ -192,7 +195,8 @@ export class ScaleRawExtentInfo {
         scale: Scale,
         model: AxisBaseModel,
         // Typically: data extent from all series on this axis.
-        dataExtent: number[]
+        dataExtent: number[],
+        requireStartValue: boolean
     ) {
         const isOrdinal = isOrdinalScale(scale);
 
@@ -236,11 +240,7 @@ export class ScaleRawExtentInfo {
         //      be the result that originalExtent enlarged by boundaryGap.
         // (3) If no data, it should be ensured that `scale.setBlank` is set.
 
-        let startValue = parseAxisModelMinMax(scale, model.get('startValue', true));
-        let modelMinRaw = model.get('min', true);
-        if (modelMinRaw == null) {
-            modelMinRaw = startValue;
-        }
+        const modelMinRaw = model.get('min', true);
         if (modelMinRaw === 'dataMin') {
             noZoomEffMM[0] = dataMM[0];
             fixMM[0] = true;
@@ -292,13 +292,14 @@ export class ScaleRawExtentInfo {
                 : dataMM[1] + boundaryGap[1] * span;
         }
 
-        // Normalize to `NaN` if invalid.
+        // Normalize to `NaN` if invalid; e.g., this may occur when `dataMM` has Infinity.
         !isValidNumberForExtent(noZoomEffMM[0]) && (noZoomEffMM[0] = NaN);
         !isValidNumberForExtent(noZoomEffMM[1]) && (noZoomEffMM[1] = NaN);
 
         const isBlank = eqNaN(noZoomEffMM[0]) || eqNaN(noZoomEffMM[1])
             || (isOrdinal && !axisDataLen);
 
+        // NOTE: `needCrossZero` is not applicable to LogScale.
         const needCrossZero = isIntervalScale(scale) && model.getNeedCrossZero && model.getNeedCrossZero();
         if (needCrossZero) {
             if (noZoomEffMM[0] > 0 && noZoomEffMM[1] > 0 && !fixMM[0]) {
@@ -315,13 +316,26 @@ export class ScaleRawExtentInfo {
         if (noZoomEffMM[0] > noZoomEffMM[1]) {
             // Historically, if users set `xxxAxis.min > xxxAxis.max`, or `xxxAxis.max < dataExtent[0]`,
             // or `xxxAxis.min > dataExtent[1]` the behavior is sometimes like `xxxAxis.inverse = true`,
-            // sometimes abnormal. We remain backward compatible with the former one.
+            // sometimes abnormal. We remain backward compatible with the former one, though this feature
+            // may not be reasonable.
+            // And handle it after "needCrossZero" is also for backward compatibility.
             noZoomEffMM.reverse();
             needToggleAxisInverse = true;
         }
 
-        if (scale.sanitize) {
-            startValue = scale.sanitize(startValue, dataMM);
+        let startValue = parseAxisModelMinMax(scale, model.get('startValue', true));
+        if (!isNullableNumberFinite(startValue) && requireStartValue) {
+            startValue = scale.getDefaultStartValue ? scale.getDefaultStartValue() : 0;
+        }
+        if (isNullableNumberFinite(startValue)) {
+            if (startValue < noZoomEffMM[0] && !fixMM[0]) {
+                noZoomEffMM[0] = startValue;
+                fixMM[0] = true;
+            }
+            else if (startValue > noZoomEffMM[1] && !fixMM[1]) {
+                noZoomEffMM[1] = startValue;
+                fixMM[1] = true;
+            }
         }
 
         let containShape = (model as AxisBaseModel<NumericAxisBaseOptionCommon>).get('containShape', true);
@@ -447,13 +461,8 @@ function sanitizeExtent(
     mm: (number | NullUndefined)[]
 ): void {
     const scale = internal.scale;
-    if (scale.sanitize) {
-        const dataMM = internal.dataMM;
-        mm[0] = scale.sanitize(mm[0], dataMM);
-        mm[1] = scale.sanitize(mm[1], dataMM);
-        if (mm[1] < mm[0]) {
-            mm[1] = mm[0];
-        }
+    if (scale.sanitizeExtent) {
+        scale.sanitizeExtent(mm, internal.dataMM);
     }
 }
 
@@ -603,6 +612,7 @@ function scaleRawExtentInfoCreateDeal(
 ): void {
     const scaleStore = ensureScaleStore(axis);
     const extent = scaleStore.extent;
+    let requireStartValue = false;
 
     eachSeriesOnAxis(axis, function (seriesModel) {
         if (seriesModel.boxCoordinateSystem) {
@@ -634,10 +644,13 @@ function scaleRawExtentInfoCreateDeal(
                     unionExtentFromExtent(extent, data.getApproximateExtent(dim, filter));
                 });
             }
+            if (seriesModel.__requireStartValue && seriesModel.__requireStartValue(axis)) {
+                requireStartValue = true;
+            }
         }
     });
 
-    const rawExtentInfo = new ScaleRawExtentInfo(scale, model, extent);
+    const rawExtentInfo = new ScaleRawExtentInfo(scale, model, extent, requireStartValue);
     injectScaleRawExtentInfo(scale, rawExtentInfo, from);
 
     scaleStore.extent = null; // Clean up
@@ -660,7 +673,7 @@ function scaleRawExtentInfoBuildDefault(
     }
     injectScaleRawExtentInfo(
         scale,
-        new ScaleRawExtentInfo(scale, axisLike.model, dataExtent),
+        new ScaleRawExtentInfo(scale, axisLike.model, dataExtent, false),
         AXIS_EXTENT_INFO_BUILD_FROM_EMPTY
     );
 }

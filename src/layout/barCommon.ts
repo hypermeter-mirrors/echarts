@@ -17,6 +17,7 @@
 * under the License.
 */
 
+import { assert } from 'zrender/src/core/util';
 import { getMetricsNonOrdinalLinearPositiveMinGap } from '../chart/helper/axisSnippets';
 import type Axis from '../coord/Axis';
 import { AxisStatKey, requireAxisStatistics } from '../coord/axisStatistics';
@@ -47,10 +48,10 @@ export function requireAxisStatisticsForBaseBar(
 
 // See cases in `test/bar-start.html` and `#7412`, `#8747`.
 export function getStartValue(baseAxis: Axis): number {
-    let startValue = baseAxis.scale.rawExtentInfo.makeOthers().startValue;
-    if (!isNullableNumberFinite(startValue)) {
-        startValue = 0;
+    const val = baseAxis.scale.rawExtentInfo.makeOthers().startValue;
+    if (__DEV__) {
+        assert(isNullableNumberFinite(val));
     }
-    return startValue;
+    return val;
 }
 

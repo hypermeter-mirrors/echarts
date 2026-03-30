@@ -111,7 +111,7 @@ function layoutPerAxisPerSeries(
     const clampLayout = baseAxis.dim !== 'radius'
         || !seriesModel.get('roundCap', true);
 
-    const valueAxisStart = valueAxis.dataToCoord(getStartValue(baseAxis));
+    const valueAxisStart = valueAxis.dataToCoord(getStartValue(valueAxis));
 
     for (let idx = 0, len = data.count(); idx < len; idx++) {
         const value = data.get(valueDim, idx) as number;

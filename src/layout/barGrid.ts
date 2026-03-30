@@ -398,7 +398,7 @@ export function createProgressiveLayout(seriesType: string): StageHandler {
             const stacked = isDimensionStacked(data, valueDim) && !!data.getCalculationInfo('stackedOnSeries');
             const isValueAxisH = valueAxis.isHorizontal();
 
-            const valueAxisStart = valueAxis.toGlobalCoord(valueAxis.dataToCoord(getStartValue(baseAxis)));
+            const valueAxisStart = valueAxis.toGlobalCoord(valueAxis.dataToCoord(getStartValue(valueAxis)));
 
             const isLarge = isInLargeMode(seriesModel);
             const barMinHeight = seriesModel.get('barMinHeight') || 0;
