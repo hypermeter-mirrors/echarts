@@ -150,7 +150,7 @@ export function getScaleValuePositionKind(
     const max = dataExtent[1];
     return !isValidBoundsForExtent(min, max) ? SCALE_VALUE_POSITION_KIND_OUTSIDE
         : (min === value || max === value) ? SCALE_VALUE_POSITION_KIND_EDGE
-        : (min < value || max > value) ? SCALE_VALUE_POSITION_KIND_INSIDE
+        : (min < value && max > value) ? SCALE_VALUE_POSITION_KIND_INSIDE
         : SCALE_VALUE_POSITION_KIND_OUTSIDE;
 }
 export type ScaleValuePositionKind =

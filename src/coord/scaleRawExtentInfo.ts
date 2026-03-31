@@ -26,6 +26,7 @@ import { parsePercent } from 'zrender/src/contain/text';
 import {
     NumericAxisBaseOptionCommon,
     NumericAxisBoundaryGapOptionItemValue,
+    ValueAxisBaseOption,
 } from './axisCommonTypes';
 import { DimensionIndex, DimensionName, NullUndefined, ScaleDataValue } from '../util/types';
 import { isIntervalScale, isLogScale, isOrdinalScale, isTimeScale } from '../scale/helper';
@@ -299,8 +300,9 @@ export class ScaleRawExtentInfo {
         const isBlank = eqNaN(noZoomEffMM[0]) || eqNaN(noZoomEffMM[1])
             || (isOrdinal && !axisDataLen);
 
-        // NOTE: `needCrossZero` is not applicable to LogScale.
-        const needCrossZero = isIntervalScale(scale) && model.getNeedCrossZero && model.getNeedCrossZero();
+        // NOTE: `needCrossZero` is not applicable to LogScale, TimeScale, OrdinalScale.
+        const needCrossZeroApplicable = isIntervalScale(scale);
+        const needCrossZero = needCrossZeroApplicable && model.getNeedCrossZero && model.getNeedCrossZero();
         if (needCrossZero) {
             if (noZoomEffMM[0] > 0 && noZoomEffMM[1] > 0 && !fixMM[0]) {
                 noZoomEffMM[0] = 0;
@@ -324,10 +326,15 @@ export class ScaleRawExtentInfo {
         }
 
         let startValue = parseAxisModelMinMax(scale, model.get('startValue', true));
+        const startValueSpecified = startValue != null;
         if (!isNullableNumberFinite(startValue) && requireStartValue) {
             startValue = scale.getDefaultStartValue ? scale.getDefaultStartValue() : 0;
         }
-        if (isNullableNumberFinite(startValue)) {
+        if (isNullableNumberFinite(startValue)
+            // Keep backward compatibility and enable `xxxAxis.scale: true` enabled on bar series:
+            // if `xxxAxis.scale: true` and `startValue` is not specified, do not union the default `startValue`,
+            && (startValueSpecified || !needCrossZeroApplicable || needCrossZero)
+        ) {
             if (startValue < noZoomEffMM[0] && !fixMM[0]) {
                 noZoomEffMM[0] = startValue;
                 fixMM[0] = true;
