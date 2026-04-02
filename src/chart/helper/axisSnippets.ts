@@ -29,8 +29,21 @@ import { ComponentSubType } from '../../util/types';
 
 /**
  * Require `requireAxisStatistics`.
+ *
+ * Simply expand `Scale` extent by half bandWidth.
+ * Do nothing if an `OrdinalScale` has `boundaryGap: true`.
  */
 export function createBandWidthBasedAxisContainShapeHandler(axisStatKey: AxisStatKey): AxisContainShapeHandler {
+
+    // [AXIS_CONTAIN_SHAPE_COMMON_STRATEGY]:
+    //  The calculation below is based on a proportion mapping
+    //  from `[barsBoundVal[0], barsBoundVal[1]]` to `[minValNew, maxValNew]`:
+    //                  |------|------------------------------|---|
+    //     barsBoundVal[0]   minValOld                 maxValOld barsBoundVal[1]
+    //                         |----|----------------------|--|
+    //                  minValNew    minValOld     maxValOld maxValNew
+    //     (Note: `|---|` above represents "pixels" rather than "data".)
+
     return function (axis, scale, ecModel) {
         const bandWidthResult = calcBandWidth(axis, {fromStat: {key: axisStatKey}});
         const invRatio = bandWidthResult.invRatio;

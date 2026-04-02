@@ -1783,13 +1783,14 @@
      *          value: 'NOT_SET',
      *          values: ['NOT_SET', 2, 0, 1]
      *      },
-     *      br: {},                                // Can create a 'br' input.
+     *      br0: {},                               // Can create a 'br' input.
      *                                             // 'br'/'BR' is reserved keys.
      *      dataZoomOrMinMax: {
      *          text: 'use:',                      // Can omit.
      *          value: 'use_xAxis_min_max',
      *          values: ['use_xAxis_min_max', 'use_dataZoom'],
-     *      }
+     *      },
+     *      br1: {},                               // Create another 'br' input.
      *  };
      *  function createOption() {
      *      return {...};
@@ -1812,7 +1813,8 @@
             }
         }
         function createInput(key) {
-            if (key.toLowerCase() === 'br') {
+            if (/^br[0-9]*$/i.test(key)) {
+                // Can be typically `{br: {}, br0: {}, br1: {}, BR: {}, BR1: {}}`.
                 return {
                     type: 'br'
                 };

@@ -70,10 +70,16 @@ under the License.
                         value: false,
                         values: [false, true],
                     },
+                    br0: {}, // The first <br>
+                    yAxisMin: {
+                        value: 'NOT_SET',
+                        values: ['NOT_SET', -1000, -500]
+                    },
+                    br1: {}, // The second <br>
                     yAxisMax: {
                         value: 'NOT_SET',
                         values: ['NOT_SET', 1000, 500]
-                    }
+                    },
                 };
 
                 function createOption() {
@@ -93,6 +99,9 @@ under the License.
                         }
                     };
 
+                    if (_ctx.yAxisMin.value !== 'NOT_SET') {
+                        option.yAxis.min = _ctx.yAxisMin.value;
+                    }
                     if (_ctx.yAxisMax.value !== 'NOT_SET') {
                         option.yAxis.max = _ctx.yAxisMax.value;
                     }

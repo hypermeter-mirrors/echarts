@@ -26,9 +26,11 @@ import type IntervalScale from './Interval';
 import type LogScale from './Log';
 import type Scale from './Scale';
 import type TimeScale from './Time';
-import { NullUndefined, OrdinalNumber, ScaleTick } from '../util/types';
+import { NullUndefined, ScaleTick } from '../util/types';
 import type OrdinalScale from './Ordinal';
-import type { ScaleExtentFixMinMax } from '../coord/scaleRawExtentInfo';
+import {
+    ScaleExtentFixMinMax, ScaleRawExtentResultFinal
+} from '../coord/scaleRawExtentInfo';
 import { isValidNumberForExtent } from '../util/model';
 import { getScaleExtentForTickUnsafe } from './scaleMapper';
 
@@ -216,15 +218,25 @@ export function logScalePowTick(
 /**
  * For `IntervalScale`, convert `rawExtent` to:
  *  - Be no non-finite number.
- *  - Be `extent[0] < extent[1]`; no equal, which brings convenience to "nice" calculation.
+ *  - Be `extent[0] < extent[1]`- no equal; otherwise, additional handling is required
+ *    in "nice" and "align" ticks.
  */
 export function intervalScaleEnsureValidExtent(
     rawExtent: number[],
     fixMinMax: ScaleExtentFixMinMax,
+    rawExtentResult?: ScaleRawExtentResultFinal | NullUndefined
 ): number[] {
     const extent = rawExtent.slice();
+
+    // PENDING:
+    //  This implementation is not rigorous, but has long been in use.
+
     // If extent start and end are same, expand them
     if (extent[0] === extent[1]) {
+        // If `containShape`, the extent must be evenly distributed to both sides;
+        // otherwise, shape (e.g., bars) may be overflow and clipped.
+        const containShape = rawExtentResult.containShape;
+
         if (extent[0] !== 0) {
             // Expand extent
             // Note that extents can be both negative. See #13154
@@ -243,7 +255,13 @@ export function intervalScaleEnsureValidExtent(
             }
         }
         else {
-            extent[1] = 1;
+            if (containShape) {
+                extent[0] = -1;
+                extent[1] = 1;
+            }
+            else {
+                extent[1] = 1;
+            }
         }
     }
     // For example, if there are no series data, extent may be `[Infinity, -Infinity]` here.

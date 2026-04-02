@@ -49,6 +49,8 @@ interface MinMaxSpan {
 export interface AxisProxyWindow {
     // NOTE: May include non-effective portion.
     value: number[];
+    // Although `dataZoom` effectively calculates based on "noZoomMapMM" (where
+    // containShape is considered), `dataZoom` labels always show `noZoomEffMM`.
     noZoomEffMM: ScaleRawExtentResultForZoom['noZoomEffMM'];
     percent: number[];
     // Percent invert from "value window", which may be slightly different from "percent window" due to some
@@ -375,10 +377,10 @@ class AxisProxy {
         // `axisHelper.getScaleExtent`. But the different just affects the experience a
         // little when zooming. So it will not be fixed until some users require it strongly.
         if (percent[0] !== 0) {
-            rawExtentInfo.setZoomMinMax(0, value[0]);
+            rawExtentInfo.setZoomMM(0, value[0]);
         }
         if (percent[1] !== 100) {
-            rawExtentInfo.setZoomMinMax(1, value[1]);
+            rawExtentInfo.setZoomMM(1, value[1]);
         }
     }
 

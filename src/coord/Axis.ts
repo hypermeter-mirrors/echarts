@@ -278,7 +278,6 @@ function makeExtentWithBands(axis: Axis): number[] {
         const margin = size / (axis.scale as OrdinalScale).count() / 2;
         extent[0] += margin;
         extent[1] -= margin;
-
     }
     return extent;
 }

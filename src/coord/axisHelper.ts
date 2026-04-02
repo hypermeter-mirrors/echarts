@@ -374,3 +374,7 @@ export function getTickValueOutermost(scale: Scale, tick: ScaleTick): number {
         ? scale.getRawOrdinalNumber(tick.value)
         : tick.value;
 }
+
+export function isAxisOnBand(scale: Scale, axisModel: AxisBaseModel): boolean {
+    return isOrdinalScale(scale) && !!(axisModel as AxisBaseModel<CategoryAxisBaseOption>).get('boundaryGap');
+}

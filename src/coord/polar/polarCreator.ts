@@ -17,7 +17,6 @@
 * under the License.
 */
 
-// TODO Axis scale
 
 import * as zrUtil from 'zrender/src/core/util';
 import Polar, { polarDimensions } from './Polar';
@@ -25,6 +24,7 @@ import {parsePercent} from '../../util/number';
 import {
     createScaleByModel,
     determineAxisType,
+    isAxisOnBand,
 } from '../../coord/axisHelper';
 
 import PolarModel, { COMPONENT_TYPE_POLAR, COORD_SYS_TYPE_POLAR } from './PolarModel';
@@ -110,8 +110,7 @@ function isAngleAxisModel(axisModel: AngleAxisModel | PolarAxisModel): axisModel
 function setAxis(axis: RadiusAxis | AngleAxis, axisModel: PolarAxisModel) {
     axis.type = determineAxisType(axisModel);
     axis.scale = createScaleByModel(axisModel, axis.type, false);
-    axis.onBand = (axisModel as AxisBaseModel<CategoryAxisBaseOption>).get('boundaryGap')
-        && axis.type === 'category';
+    axis.onBand = isAxisOnBand(axis.scale, axisModel);
     axis.inverse = axisModel.get('inverse');
 
     if (isAngleAxisModel(axisModel)) {

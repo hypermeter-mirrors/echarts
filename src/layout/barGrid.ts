@@ -18,7 +18,7 @@
 */
 
 import { each, defaults, hasOwn, assert } from 'zrender/src/core/util';
-import { isNullableNumberFinite, mathAbs, mathMax, mathMin, parsePercent } from '../util/number';
+import { mathAbs, mathMax, mathMin, parsePercent } from '../util/number';
 import { isDimensionStacked } from '../data/helper/dataStackHelper';
 import createRenderPlanner from '../chart/helper/createRenderPlanner';
 import Axis2D from '../coord/cartesian/Axis2D';
@@ -27,10 +27,7 @@ import Cartesian2D from '../coord/cartesian/Cartesian2D';
 import { StageHandler, NullUndefined } from '../util/types';
 import { createFloat32Array } from '../util/vendor';
 import {
-    extentHasValue,
-    initExtentForUnion,
     makeCallOnlyOnce,
-    unionExtentFromNumber,
 } from '../util/model';
 import { isOrdinalScale } from '../scale/helper';
 import {
@@ -44,14 +41,14 @@ import {
 import { EChartsExtensionInstallRegisters } from '../extension';
 import {
     eachAxisOnKey,
-    eachSeriesOnAxisOnKey, countSeriesOnAxisOnKey,
+    eachSeriesOnAxisOnKey,
 } from '../coord/axisStatistics';
 import {
     AxisBandWidthResult, calcBandWidth
 } from '../coord/axisBand';
 import { BaseBarSeriesSubType, getStartValue, requireAxisStatisticsForBaseBar } from './barCommon';
 import { COORD_SYS_TYPE_CARTESIAN_2D } from '../coord/cartesian/GridModel';
-import { makeAxisStatKey2 } from '../chart/helper/axisSnippets';
+import { createBandWidthBasedAxisContainShapeHandler, makeAxisStatKey2 } from '../chart/helper/axisSnippets';
 
 
 const callOnlyOnce = makeCallOnlyOnce();
@@ -177,16 +174,15 @@ function createLayoutInfoListOnAxis(
         baseAxis,
         {fromStat: {key: axisStatKey}, min: 1}
     );
-    const bandWidth = bandWidthResult.w;
 
     eachSeriesOnAxisOnKey(baseAxis, axisStatKey, function (seriesModel: BaseBarSeriesModel) {
         seriesInfoOnAxis.push({
-            barWidth: parsePercent(seriesModel.get('barWidth'), bandWidth),
-            barMaxWidth: parsePercent(seriesModel.get('barMaxWidth'), bandWidth),
+            barWidth: parsePercent(seriesModel.get('barWidth'), bandWidthResult.w),
+            barMaxWidth: parsePercent(seriesModel.get('barMaxWidth'), bandWidthResult.w),
             barMinWidth: parsePercent(
                 // barMinWidth by default is 0.5 / 1 in cartesian. Because in value axis,
                 // the auto-calculated bar width might be less than 0.5 / 1.
-                seriesModel.get('barMinWidth') || (isInLargeMode(seriesModel) ? 0.5 : 1), bandWidth
+                seriesModel.get('barMinWidth') || (isInLargeMode(seriesModel) ? 0.5 : 1), bandWidthResult.w
             ),
             barGap: seriesModel.get('barGap'),
             barCategoryGap: seriesModel.get('barCategoryGap'),
@@ -508,69 +504,64 @@ function isInLargeMode(seriesModel: BaseBarSeriesModel) {
     return seriesModel.pipelineContext && seriesModel.pipelineContext.large;
 }
 
-
-/**
- * NOTICE:
- *  - Must NOT be called before series-filter due to the series cache in `layoutPre`.
- *  - It relies on `axis.getExtent` and `scale.getExtent` to calculate `bandWidth`
- *    for non-'category' axes. Assume `scale.setExtent` has been prepared.
- *    See the summary of the process of extent determination in the comment of `scaleMapper.setExtent`.
- */
 function barGridCreateAxisContainShapeHandler(seriesType: BaseBarSeriesSubType): AxisContainShapeHandler {
-    return function (axis, scale, ecModel) {
-        // If bars are placed on 'time', 'value', 'log' axis, handle bars overflow here.
-        // See #6728, #4862, `test/bar-overflow-time-plot.html`
-        if (axis && axis instanceof Axis2D && !isOrdinalScale(scale)) {
-            if (!countSeriesOnAxisOnKey(axis, makeAxisStatKey2(seriesType, COORD_SYS_TYPE_CARTESIAN_2D))) {
-                return; // Quick path - in most cases there is no bar on non-ordinal axis.
-            }
-            const columnLayout = makeColumnLayoutOnAxisReal(axis, seriesType);
-            return calcShapeOverflowSupplement(columnLayout);
-        }
-    };
+    // See also #6728, #4862, `test/bar-overflow-time-plot.html` `test/bar-overflow-plot2.html`
+    // NOTE:
+    //  Series shapes may overflow `bandWidth` when ec option is set like:
+    //    - `barWidth` > 100%.
+    //    - `barWidth` is set as absolute pixel values and `dataZoom` is used, since `bandWidth` is
+    //      calculated on data space rather than pixel space.
+    //  We originally used `calcShapeOverflowSupplement` to cover this case, but it still can not
+    //  resolve pixel `barWidth` case perfectly. A thorough solution may introduce considerable complex,
+    //  but may not necessary, since users can avoid it by proper ec option settings.
+    //  Therefore, we use simply `createBandWidthBasedAxisContainShapeHandler` to calculate "containShape"
+    //  only based on `bandWidth`.
+    return createBandWidthBasedAxisContainShapeHandler(
+        makeAxisStatKey2(seriesType, COORD_SYS_TYPE_CARTESIAN_2D)
+    );
+    // return function (axis, scale, ecModel) {
+    //     if (!countSeriesOnAxisOnKey(axis, makeAxisStatKey2(seriesType, COORD_SYS_TYPE_CARTESIAN_2D))) {
+    //         return; // Quick path - in most cases there is no bar on non-ordinal axis.
+    //     }
+    //     const columnLayout = makeColumnLayoutOnAxisReal(axis, seriesType);
+    //     return calcShapeOverflowSupplement(columnLayout);
+    // };
 }
 
-function calcShapeOverflowSupplement(
-    columnLayout: BarGridColumnLayoutOnAxis | NullUndefined
-): number[] | NullUndefined {
-    if (columnLayout == null) {
-        return;
-    }
-    const bandWidthResult = columnLayout.bandWidthResult;
-    const invRatio = bandWidthResult.invRatio;
-    if (!isNullableNumberFinite(invRatio)) {
-        return; // No series data or no more than one distinct valid data values.
-    }
-
-    // The calculation below is based on a proportion mapping from
-    // `[barsBoundVal[0], barsBoundVal[1]]` to `[minValNew, maxValNew]`:
-    //                 |------|------------------------------|---|
-    //    barsBoundVal[0]   minValOld                 maxValOld barsBoundVal[1]
-    //                        |----|----------------------|--|
-    //                 minValNew    minValOld     maxValOld maxValNew
-    //    (Note: `|---|` above represents "pixels" rather than "data".)
-
-    const barsBoundPx = initExtentForUnion();
-    const bandWidth = bandWidthResult.w;
-    // Union `-bandWidth / 2` and `bandWidth / 2` to provide extra space for visually preferred,
-    // Otherwise the bars on the edges may overlap with axis line.
-    // And it also includes `0`, which ensures `barsBoundPx[0] <= 0 <= barsBoundPx[1]`.
-    unionExtentFromNumber(barsBoundPx, -bandWidth / 2);
-    unionExtentFromNumber(barsBoundPx, bandWidth / 2);
-    // Shapes may overflow the `bandWidth`. For example, that might happen in `pictorialBar`.
-    // Therefore, we also involve shape size (mapped to data scale) in this expansion calculation.
-    each(columnLayout.columnMap, function (item) {
-        unionExtentFromNumber(barsBoundPx, item.offset);
-        unionExtentFromNumber(barsBoundPx, item.offset + item.width);
-    });
-
-    if (extentHasValue(barsBoundPx)) {
-        // Convert from pixel domain to data domain, since the `barsBoundPx` is calculated based on
-        // `minGap` and extent on data domain.
-        return [barsBoundPx[0] * invRatio, barsBoundPx[1] * invRatio];
-        // If AXIS_BAND_WIDTH_KIND_SINGULAR, extent expansion is not needed.
-    }
-}
+// /**
+//  * @see [AXIS_CONTAIN_SHAPE_COMMON_STRATEGY] for more details.
+//  */
+// function calcShapeOverflowSupplement(
+//     columnLayout: BarGridColumnLayoutOnAxis | NullUndefined
+// ): number[] | NullUndefined {
+//     if (columnLayout == null) {
+//         return;
+//     }
+//     const bandWidthResult = columnLayout.bandWidthResult;
+//     const invRatio = bandWidthResult.invRatio;
+//     if (!isNullableNumberFinite(invRatio)) {
+//         return; // No series data or no more than one distinct valid data values.
+//     }
+//     const barsBoundPx = initExtentForUnion();
+//     const bandWidth = bandWidthResult.w;
+//     // Union `-bandWidth / 2` and `bandWidth / 2` to provide extra space for visually preferred,
+//     // Otherwise the bars on the edges may overlap with axis line.
+//     // And it also includes `0`, which ensures `barsBoundPx[0] <= 0 <= barsBoundPx[1]`.
+//     unionExtentFromNumber(barsBoundPx, -bandWidth / 2);
+//     unionExtentFromNumber(barsBoundPx, bandWidth / 2);
+//     // Shapes may overflow the `bandWidth`. For example, that might happen in `pictorialBar`.
+//     // Therefore, we also involve shape size (mapped to data scale) in this expansion calculation.
+//     each(columnLayout.columnMap, function (item) {
+//         unionExtentFromNumber(barsBoundPx, item.offset);
+//         unionExtentFromNumber(barsBoundPx, item.offset + item.width);
+//     });
+//     if (extentHasValue(barsBoundPx)) {
+//         // Convert from pixel domain to data domain, since the `barsBoundPx` is calculated based on
+//         // `minGap` and extent on data domain.
+//         return [barsBoundPx[0] * invRatio, barsBoundPx[1] * invRatio];
+//         // If AXIS_BAND_WIDTH_KIND_SINGULAR, extent expansion is not needed.
+//     }
+// }
 
 export function registerBarGridAxisHandlers(registers: EChartsExtensionInstallRegisters) {
     callOnlyOnce(registers, function () {

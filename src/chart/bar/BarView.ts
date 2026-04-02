@@ -93,33 +93,6 @@ type RealtimeSortConfig = {
 // Return a number, based on which the ordinal sorted.
 type OrderMapping = (dataIndex: number) => number;
 
-function createClipArea(coord: CoordSysOfBar, data: SeriesData) {
-    const coordSysClipArea = coord.getArea && coord.getArea();
-    if (isCoordinateSystemType<Cartesian2D>(coord, 'cartesian2d')) {
-        const baseAxis = coord.getBaseAxis();
-        // When boundaryGap is false in category axis, bar may exceed the grid.
-        // We should not clip this part.
-        // See test/bar2.html
-        // FIXME:
-        //  When bar series lay out on `boundaryGap: false`, the effect is not
-        //  preferable - edge bars will overflow the Cartesian area.
-        //  It may be optimized following the way used in candlestick
-        //  (using `registerAxisContainShapeHandler`).
-        if (baseAxis.type === 'category' && !baseAxis.onBand) {
-            const expandWidth = data.getLayout('bandWidth');
-            if (baseAxis.isHorizontal()) {
-                (coordSysClipArea as CartesianCoordArea).x -= expandWidth;
-                (coordSysClipArea as CartesianCoordArea).width += expandWidth * 2;
-            }
-            else {
-                (coordSysClipArea as CartesianCoordArea).y -= expandWidth;
-                (coordSysClipArea as CartesianCoordArea).height += expandWidth * 2;
-            }
-        }
-    }
-
-    return coordSysClipArea as PolarCoordArea | CartesianCoordArea;
-}
 
 class BarView extends ChartView {
     static type = 'bar' as const;
@@ -226,7 +199,8 @@ class BarView extends ChartView {
         }
 
         const needsClip = seriesModel.get('clip', true) || realtimeSortCfg;
-        const coordSysClipArea = createClipArea(coord, data);
+        // Both `cartesian2d` and `polar` has `getArea()`.
+        const coordSysClipArea = coord.getArea();
         // If there is clipPath created in large mode. Remove it.
         group.removeClipPath();
         // We don't use clipPath in normal mode because we needs a perfect animation

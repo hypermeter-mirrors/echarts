@@ -38,6 +38,7 @@ import {
     SCALE_VALUE_POSITION_KIND_EDGE,
     SCALE_VALUE_POSITION_KIND_INSIDE,
     getTickValueOutermost,
+    isAxisOnBand,
 } from '../../coord/axisHelper';
 import Cartesian2D, {cartesian2DDimensions} from './Cartesian2D';
 import Axis2D from './Axis2D';
@@ -493,8 +494,7 @@ class Grid implements CoordinateSystemMaster {
                     axisPosition
                 );
 
-                const isCategory = axis.type === 'category';
-                axis.onBand = isCategory && (axisModel as AxisBaseModel<CategoryAxisBaseOption>).get('boundaryGap');
+                axis.onBand = isAxisOnBand(axis.scale, axisModel);
                 axis.inverse = axisModel.get('inverse');
 
                 // Inject axis into axisModel

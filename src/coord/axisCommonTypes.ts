@@ -142,6 +142,11 @@ export interface AxisBaseOptionCommon extends ComponentOption,
     breakLabelLayout?: {
         moveOverlap?: 'auto' | boolean;
     }
+
+    // The axis contains the series shapes if possible, instead of overlowing at the edges.
+    // null/undefined means `true`.
+    // Not available on category axis with `boundaryGap: true`, but available with `boundaryGap: false`.
+    containShape?: boolean;
 }
 
 /**
@@ -154,11 +159,6 @@ export type NumericAxisBoundaryGapOptionItemValue = number | string | NullUndefi
 export interface NumericAxisBaseOptionCommon extends AxisBaseOptionCommon {
 
     boundaryGap?: NumericAxisBoundaryGapOption;
-
-    // The axis contains the series shapes if possible, instead of overlowing at the edges.
-    // Key is series type, like 'bar', 'pictorialBar'.
-    // null/undefined means `true`.
-    containShape?: boolean;
 
     /**
      * AxisTick and axisLabel and splitLine are calculated based on splitNumber.

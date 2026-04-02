@@ -125,9 +125,9 @@ function calcBandWidthForCategoryAxis(
     scale: Scale
 ): void {
     const axisExtent = axis.getExtent();
-    const dataExtent = scale.getExtent();
     const pxSpan = mathAbs(axisExtent[1] - axisExtent[0]);
-    const linearScaleSpan = dataExtent[1] - dataExtent[0];
+    // See the reason on BAND_WIDTH_USED_LINEAR_SCALE_SPAN.
+    const linearScaleSpan = getScaleLinearSpanForMapping(scale);
     const onBand = axis.onBand;
 
     let len = linearScaleSpan + (onBand ? 1 : 0);
@@ -135,11 +135,13 @@ function calcBandWidthForCategoryAxis(
     len === 0 && (len = 1);
 
     out.w = pxSpan / len;
-    if (!onBand) {
+    // NOTE:
+    //  - When `linearScaleSpan === 0`, no need to expand extent.
+    //  - `onBand: true` (`boundaryGap: true`) does not need to support `containShape`,
+    //    thereby no `invRatio`.
+    if (!onBand && linearScaleSpan && pxSpan) {
         out.invRatio = linearScaleSpan / pxSpan;
     }
-    // `onBand: true` (`boundaryGap: true`) does not need to support `containShape`,
-    // thereby no `invRatio`.
 }
 
 /**
@@ -185,7 +187,18 @@ function calcBandWidthForNumericAxis(
     const axisExtent = axis.getExtent();
     // Always use a new pxSpan because it may be changed in `grid` contain label calculation.
     const pxSpan = mathAbs(axisExtent[1] - axisExtent[0]);
+
+    // [BAND_WIDTH_USED_LINEAR_SCALE_SPAN]
+    // Here we deliberately use `getScaleLinearSpanForMapping` rather than `scale.getExtent()`,
+    // because band width should always respect to the currently specified extent (e.g., specified by
+    // `calcContainShape`). Otherwise, the result may incorrect, especially when data count is small.
+    // For example, when "containShape" is calculating, no `SCALE_EXTENT_KIND_MAPPING` is set, so here only
+    // `SCALE_EXTENT_KIND_EFFECTIVE` is returned, say, `[3, 5]`, based on which a `SCALE_EXTENT_KIND_MAPPING`
+    // is calculated, say `[2.5, 5.5]` (expanded by `0.5`). Then when rendering, that `SCALE_EXTENT_KIND_MAPPING`
+    // is returned here.
+    // See AXIS_CONTAIN_SHAPE_COMMON_STRATEGY for more details.
     const linearScaleSpan = getScaleLinearSpanForMapping(scale);
+
     // `linearScaleSpan` may be `0` or `Infinity` or `NaN`, since normalizers like
     // `intervalScaleEnsureValidExtent` may not have been called yet.
     if (isNullableNumberFinite(linearScaleSpan) && linearScaleSpan > 0

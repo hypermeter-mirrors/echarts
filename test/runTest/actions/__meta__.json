@@ -32,6 +32,7 @@
   "bar-datazoom-filtermode-none-time-axis": 3,
   "bar-label-rotation": 2,
   "bar-large": 2,
+  "bar-overflow-plot2": 3,
   "bar-overflow-time-plot": 3,
   "bar-polar-animation": 2,
   "bar-polar-clockwise": 1,

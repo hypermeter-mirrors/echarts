@@ -35,7 +35,8 @@ import type LogScale from '../scale/Log';
 import Scale from '../scale/Scale';
 import {
     adoptScaleExtentKindMapping, adoptScaleRawExtentInfoAndPrepare,
-    ScaleExtentFixMinMax
+    ScaleExtentFixMinMax,
+    ScaleRawExtentResultFinal
 } from './scaleRawExtentInfo';
 import { getScaleLinearSpanEffective } from '../scale/scaleMapper';
 import { NullUndefined } from '../util/types';
@@ -58,7 +59,7 @@ function calcNiceForIntervalOrLogScale(
     const oldOutermostExtent = isTargetLogScale ? scale.getExtent() : null;
     const oldIntervalExtent = intervalStub.getExtent();
 
-    let newIntervalExtent = intervalScaleEnsureValidExtent(oldIntervalExtent, fixMinMax);
+    let newIntervalExtent = intervalScaleEnsureValidExtent(oldIntervalExtent, fixMinMax, opt.rawExtentResult);
 
     intervalStub.setExtent(newIntervalExtent[0], newIntervalExtent[1]);
     newIntervalExtent = intervalStub.getExtent();
@@ -183,6 +184,7 @@ type ScaleCalcNiceMethodOpt = {
     minInterval?: number;
     maxInterval?: number;
     fixMinMax?: ScaleExtentFixMinMax;
+    rawExtentResult?: ScaleRawExtentResultFinal;
 };
 
 /**
@@ -190,6 +192,8 @@ type ScaleCalcNiceMethodOpt = {
  *
  * Calculate a "nice" extent and "nice" ticks configs based on the current scale extent and ec options.
  * scale extent will be modified, and config may be set to the scale.
+ *
+ * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
  */
 export function scaleCalcNice(
     axisLike: {
@@ -209,6 +213,9 @@ export function scaleCalcNice(
     scaleCalcNice2(scale, model, axis, ecModel, null);
 }
 
+/**
+ * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
+ */
 export function scaleCalcNice2(
     scale: Scale,
     model: AxisBaseModel<NumericAxisBaseOptionCommon>,
@@ -237,12 +244,13 @@ export function scaleCalcNice2(
             splitNumber: model.get('splitNumber'),
             fixMinMax: rawExtentResult.fixMM,
             minInterval: isIntervalOrTime ? model.get('minInterval') : null,
-            maxInterval: isIntervalOrTime ? model.get('maxInterval') : null
+            maxInterval: isIntervalOrTime ? model.get('maxInterval') : null,
+            rawExtentResult
         });
     }
 
     if (axis && ecModel) {
-        adoptScaleExtentKindMapping(scale, rawExtentResult);
+        adoptScaleExtentKindMapping(axis, scale, rawExtentResult);
     }
 
     if (__DEV__) {

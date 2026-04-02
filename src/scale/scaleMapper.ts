@@ -29,6 +29,10 @@ import { DataSanitizationFilter } from '../data/helper/dataValueHelper';
 // ------ START: Scale Mapper Core ------
 
 /**
+ * Illustration:
+ *  `SCALE_EXTENT_KIND_EFFECTIVE`:     |------------|     (always exist)
+ *  `SCALE_EXTENT_KIND_MAPPING`:   |---|------------|--|  (present only when it is specified by `setExtent2`)
+ *
  *  - `SCALE_EXTENT_KIND_EFFECTIVE`:
  *    It is a portion of a scale extent that is functional on most features, including:
  *      - All tick/label-related calculation.
@@ -41,9 +45,12 @@ import { DataSanitizationFilter } from '../data/helper/dataValueHelper';
  *    `SCALE_EXTENT_KIND_EFFECTIVE` always exists.
  *
  *  - `SCALE_EXTENT_KIND_MAPPING`:
- *    It is an expanded extent from the start and end of `SCALE_EXTENT_KIND_EFFECTIVE`. In the
- *    expanded parts, axis ticks and labels are considered meaningless and are not rendered. They
- *    can be typically created by `xxxAxis.containShape` feature. In this case, we need to:
+ *    It is an expanded extent from ends of `SCALE_EXTENT_KIND_EFFECTIVE` to accommodate shapes at edges to
+ *    avoid overflow. They can be typically used by bar/candlestick series on category axis with
+ *    `boundaryGap: false`, or on other numeric axes. ec option `xxxAxis.containShape` is the switch.
+ *    In this case, we need to:
+ *      - Do not render ticks and labels in the portion "SCALE_EXTENT_KIND_MAPPING - SCALE_EXTENT_KIND_EFFECTIVE",
+ *        since they are considered meaningless there.
  *      - Prevent "nice strategy" from triggering unexpectedly by the "contain shape expansion".
  *        Otherwise, for example, the original extent is `[0, 1000]`, then the expanded
  *        extent, say `[-5, 1000]`, can cause a considerable negative expansion by "nice",
@@ -60,9 +67,7 @@ import { DataSanitizationFilter } from '../data/helper/dataValueHelper';
  *      - `axisPointer` triggering (otherwise users may be confused if using `SCALE_EXTENT_KIND_EFFECTIVE`).
  *    `SCALE_EXTENT_KIND_MAPPING` can be absent, which can be used to determine whether it is used.
  *
- * Illustration:
- *  `SCALE_EXTENT_KIND_EFFECTIVE`:     |------------|     (always exist)
- *  `SCALE_EXTENT_KIND_MAPPING`:   |---|------------|--|  (present only when it is specified by `setExtent2`)
+ * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
  */
 export type ScaleExtentKind =
     typeof SCALE_EXTENT_KIND_EFFECTIVE
@@ -116,36 +121,53 @@ export type ScaleMapperTransformInOpt =
     ScaleMapperDepthOpt;
 
 /**
- * `ScaleMapper` is designed for multiple steps of numeric transformations from a certain space to a linear space,
- * or vice versa. Each steps is implemented as a `ScaleMapper`, and composed like a decorator pattern. And some
- * steps, such as "axis breaks transfromation", can be skipped when no breaks for performance consideration.
+ * [SCALE_COMPOSITION_AND_TRANSFORMATION]:
+ *  `ScaleMapper` is designed for multiple steps of numeric transformations from a certain space to a linear space,
+ *  or vice versa. Each steps is implemented as a `ScaleMapper`, and composed like a decorator pattern. And some
+ *  steps, such as "axis breaks transfromation", can be skipped when no breaks for performance consideration.
+ *  Currently we support:
+ *    - step#0: extent based linear scaling.
+ *              This is implemented in `LinearScaleMapper`.
+ *              It is mixed into `IntervalScale`, `TimeScale`;
+ *              and it is also composited into `BreakScaleMapper`, `OrdinalScale`, `LogScale`.
+ *    - step#1: axis breaks.
+ *              This is implemented in `BreakScaleMapper`.
+ *              This step may be absent if no breaks.
+ *    - step#2: logarithmic (implemented in `LogScale`), or
+ *              ordinal-related handling, or
+ *              others to be supported, such as asinh ...
+ *  Illustration of some currently supported cases:
+ *    - linear_space(in an IntervalScale)
+ *    - break_space(in an IntervalScale method bound by a BreakScaleMapper)
+ *       └─break_transform─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
+ *    - log_space(in a LogScale)
+ *       └─log_transform─► linear_space(in an IntervalScale)
+ *    - log_space(in a LogScale)
+ *       └─log_transform─► break_space(in an IntervalScale method bound by a BreakScaleMapper)
+ *                          └─break_transform─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
+ *    - linear_space(in a TimeScale)
+ *    - break_space(in a TimeScale method bound by a BreakScaleMapper)
+ *       └─break_transform─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
+ *    - category_values(in a OrdinalScale)
+ *       └─category_to_numeric─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
  *
- * Currently we support:
- *  - step#0: extent based linear scaling.
- *            This is implemented in `LinearScaleMapper`.
- *            It is mixed into `IntervalScale`, `TimeScale`;
- *            and it is also composited into `BreakScaleMapper`, `OrdinalScale`, `LogScale`.
- *  - step#1: axis breaks.
- *            This is implemented in `BreakScaleMapper`.
- *            This step may be absent if no breaks.
- *  - step#2: logarithmic (implemented in `LogScale`), or
- *            ordinal-related handling, or
- *            others to be supported, such as asinh ...
  *
- * Illustration of some currently supported cases:
- *  - linear_space(in an IntervalScale)
- *  - break_space(in an IntervalScale method bound by a BreakScaleMapper)
- *     └─break_transform─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
- *  - log_space(in a LogScale)
- *     └─log_transform─► linear_space(in an IntervalScale)
- *  - log_space(in a LogScale)
- *     └─log_transform─► break_space(in an IntervalScale method bound by a BreakScaleMapper)
- *                        └─break_transform─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
- *  - linear_space(in a TimeScale)
- *  - break_space(in a TimeScale method bound by a BreakScaleMapper)
- *     └─break_transform─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
- *  - category_values(in a OrdinalScale)
- *     └─category_to_numeric─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
+ * [SCALE_EXTENT_CONSTRUCTION]:
+ *  The full construction processing of the scale extent in EC_MAIN_CYCLE:
+ *  - step#1. At `CoordinateSystem#create` stage, requirements of collecting series data extents are
+ *            committed to `associateSeriesWithAxis`, and `Scale` instances are created.
+ *  - step#2. Call `scaleRawExtentInfoCreate` to really collect series data extent and create
+ *            `ScaleRawExtentInfo` instances to manage extent related configurations
+ *              - at "data processing" stage for dataZoom controlled axes, if any, or
+ *              - at "CoordinateSystem#update" stage for all other axes.
+ *            `calcContainShape` is performed in this step. See CONTAIN_SHAPE_INPUT_SCALE_EXTENT for
+ *            the reason.
+ *  - step#3. Perform "nice" (see `scaleCalcNice`) or "align" (see `scaleCalcAlign`) strategies to
+ *            modify the original extent from `ScaleRawExtentInfo` instance, if needed, at
+ *            "CoordinateSystem#update" stage.
+ *  - step#4. Set `SCALE_EXTENT_KIND_MAPPING` if needed (see `adoptScaleExtentKindMapping`; introduced
+ *            by features like "containShape") at "CoordinateSystem#update" stage.
+ *
  */
 export interface ScaleMapper extends ScaleMapperGeneric<ScaleMapper> {}
 export interface ScaleMapperGeneric<This> {
@@ -212,13 +234,15 @@ export interface ScaleMapperGeneric<This> {
      * An extent is always in an increase order.
      * It always returns an array - never be a null/undefined.
      *
-     * @see {setExtent} for more details.
+     * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
      */
     getExtent(this: This): number[];
 
     /**
      * [NOTICE]:
      *  Callers must NOT modify the return.
+     *
+     * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
      */
     getExtentUnsafe(
         this: This,
@@ -233,19 +257,7 @@ export interface ScaleMapperGeneric<This> {
      *
      * `setExtent` is identical to `setExtent2(SCALE_EXTENT_KIND_EFFECTIVE)`.
      *
-     * [The steps of extent construction in EC_MAIN_CYCLE]:
-     *  - step#1. At `CoordinateSystem#create` stage, requirements of collecting series data extents are
-     *            committed to `associateSeriesWithAxis`, and `Scale` instances are created.
-     *  - step#2. Call `scaleRawExtentInfoCreate` to really collect series data extent and create
-     *            `ScaleRawExtentInfo` instances to manage extent related configurations
-     *              - at "data processing" stage for dataZoom controlled axes, if any, or
-     *              - at "CoordinateSystem#update" stage for all other axes.
-     *            Some strategies like "containShape" is performed then to expand the extent if needed.
-     *  - step#3. Perform "nice" (see `scaleCalcNice`) or "align" (see `scaleCalcAlign`) strategies to
-     *            modify the original extent from `ScaleRawExtentInfo` instance, if needed, at
-     *            "CoordinateSystem#update" stage.
-     *  - step#4. Set `SCALE_EXTENT_KIND_MAPPING` if needed (see `adoptScaleExtentKindMapping`; introduced
-     *            by features like "containShape") at "CoordinateSystem#update" stage.
+     * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
      */
     setExtent(this: This, start: number, end: number): void;
     setExtent2(this: This, kind: ScaleExtentKind, start: number, end: number): void;
@@ -412,9 +424,6 @@ const linearScaleMapperMethods: ScaleMapperGeneric<LinearScaleMapper> = {
         return false;
     },
 
-    /**
-     * NOTICE: Don't use optional arguments for performance consideration here.
-     */
     normalize(val) {
         const extent = this._extents[SCALE_EXTENT_KIND_MAPPING] || this._extents[SCALE_EXTENT_KIND_EFFECTIVE];
         if (extent[1] === extent[0]) {

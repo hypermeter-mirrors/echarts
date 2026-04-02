@@ -38,6 +38,8 @@ import type Axis from './Axis';
 
 /**
  * NOTE: See the summary of the process of extent determination in the comment of `scaleMapper.setExtent`.
+ *
+ * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
  */
 export function scaleCalcAlign(
     targetAxis: Axis,

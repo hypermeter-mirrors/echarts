@@ -130,9 +130,7 @@ class Parallel implements CoordinateSystemMaster, CoordinateSystem {
                 axisIndex
             ));
 
-            const isCategory = axis.type === 'category';
-            axis.onBand = isCategory
-                && (axisModel as AxisBaseModel<CategoryAxisBaseOption>).get('boundaryGap');
+            axis.onBand = axisHelper.isAxisOnBand(axis.scale, axisModel);
             axis.inverse = axisModel.get('inverse');
 
             // Injection
