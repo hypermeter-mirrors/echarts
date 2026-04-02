@@ -17,8 +17,6 @@
 * under the License.
 */
 
-// TODO clockwise
-
 import IndicatorAxis from './IndicatorAxis';
 import IntervalScale from '../../scale/Interval';
 import * as numberUtil from '../../util/number';
