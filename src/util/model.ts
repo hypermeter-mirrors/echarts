@@ -1258,6 +1258,15 @@ export function extentHasValue(extent: number[]): boolean {
 }
 
 /**
+ * NOTE: considered items are null/undefined/NaN - do nothing for this case.
+ */
+export function ensureExtentAscSimply(extent: (number | NullUndefined)[]): void {
+    if (isValidBoundsForExtent(extent[0], extent[1]) && extent[0] > extent[1]) {
+        extent[0] = extent[1];
+    }
+}
+
+/**
  * A util for ensuring the callback is called only once.
  * @usage
  *  const callOnlyOnce = makeCallOnlyOnce(); // Should be static (ESM top level).

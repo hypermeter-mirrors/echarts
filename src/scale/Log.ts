@@ -237,16 +237,16 @@ class LogScale extends Scale<LogScale> {
             return {g: 0};
         },
 
-        sanitizeExtent(targetExtent, dataExtent) {
+        sanitize(value, dataExtent) {
             // Conservative - if dataExtent is invalid, do not sanitize.
             if (isValidBoundsForExtent(dataExtent[0], dataExtent[1])
-                && isNullableNumberFinite(targetExtent[0])
-                && isNullableNumberFinite(targetExtent[1])
+                && isNullableNumberFinite(value)
+                && value <= 0
             ) {
                 // `DataStore` has ensured that `dataExtent` is valid for LogScale.
-                targetExtent[0] <= 0 && (targetExtent[0] = dataExtent[0]);
-                targetExtent[1] <= 0 && (targetExtent[1] = dataExtent[0]);
+                value = dataExtent[0];
             }
+            return value;
         },
 
         getDefaultStartValue() {

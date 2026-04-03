@@ -59,6 +59,7 @@ under the License.
         <div class="chart" id="main_interval"></div>
         <div class="chart" id="main9"></div>
         <div class="chart" id="main10"></div>
+        <div class="chart" id="main_yAxis_interval"></div>
 
 
         <script>
@@ -1424,6 +1425,115 @@ under the License.
 
 
 
+
+
+
+
+
+        <script>
+
+            require([
+                'echarts'
+            ], function (echarts) {
+
+                var _ctx = {
+                    dataKind: {
+                        value: 'SIMPLE_3',
+                        values: ['SIMPLE_3', 'MEDIUM_100']
+                    },
+                    yAxisType: {
+                        value: 'value',
+                        values: ['value', 'log'],
+                    },
+                    br0: {},
+                    yAxisInterval: {
+                        value: Number.MAX_SAFE_INTEGER,
+                        values: ['NOT_SET', Number.MAX_SAFE_INTEGER, 112233, 100, 0, 1]
+                    },
+                    yAxisScale: {
+                        value: true,
+                        values: ['NOT_SET', false, true],
+                    },
+                    useDataZoom: {
+                        value: true,
+                        values: [false, true]
+                    }
+                };
+
+                function createOption() {
+                    var xAxisData = [];
+                    var data1 = [];
+                    if (_ctx.dataKind.value === 'SIMPLE_3') {
+                        xAxisData = ['c1', 'c2', 'c3'];
+                        data1 = [135, 234, 313];
+                    }
+                    else if (_ctx.dataKind.value === 'MEDIUM_100') {
+                        for (var i = 0; i < 100; i++) {
+                            xAxisData.push('c' + i);
+                            data1.push(i * 113);
+                        }
+                    }
+
+                    var option = {
+                        legend: {
+                            top: 10,
+                        },
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        xAxis: [{
+                            data: xAxisData,
+                            splitArea: {
+                                show: true
+                            },
+                            splitLine: {
+                                show: true
+                            }
+                        }],
+                        yAxis: {
+                            type: _ctx.yAxisType.value,
+                        },
+                        series: [{
+                            name: 'line',
+                            type: 'line',
+                            // stack: 'one',
+                            // cursor: 'move',
+                            data: data1
+                        }]
+                    };
+                    if (_ctx.yAxisScale.value !== 'NOT_SET') {
+                        option.yAxis.scale = _ctx.yAxisScale.value;
+                    }
+                    if (_ctx.yAxisInterval.value !== 'NOT_SET') {
+                        option.yAxis.interval = _ctx.yAxisInterval.value;
+                    }
+                    if (_ctx.useDataZoom.value) {
+                        option.dataZoom = [{
+                            type: 'inside',
+                            xAxisIndex: 0,
+                        }, {
+                            type: 'slider',
+                        }];
+                    }
+                    return option;
+                }
+
+                function updateChart() {
+                    chart.setOption(createOption(), {notMerge: true});
+                }
+
+                chart = myChart = testHelper.create(echarts, 'main_yAxis_interval', {
+                    title: [
+                        'Check yAxis interval extreme case',
+                    ],
+                    option: createOption(),
+                    inputsStyle: 'compact',
+                    inputs: testHelper.createInputsSimply(_ctx, updateChart),
+                });
+
+            });
+
+        </script>
 
 
 

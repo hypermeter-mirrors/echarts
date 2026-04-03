@@ -67,14 +67,37 @@ function calcNiceForIntervalOrLogScale(
     const config = isTargetLogScale
         ? logScaleCalcNiceTicks(intervalStub, opt)
         : intervalScaleCalcNiceTicks(intervalStub, opt);
-    const interval = config.interval;
-    const intervalPrecision = config.intervalPrecision;
+    const autoIntervalPrecision = config.intervalPrecision;
+    const autoInterval = config.interval;
+
+    // When auto calculated interval is not preferable, users are allowed to explicity specify
+    // `interval`, `min`, `max` to customize the axis. A typical case is, in angle axis with angle
+    // 0 - 360, where the internally calculated interval is not 60-based.
+    // NOTICE:
+    //  - In `xxxAxis.type: 'log'`, ec option `xxxAxis.interval` requires a logarithm-applied
+    //    value rather than a value in the raw scale.
+    //  - Follow the historical behavior:
+    //    - even `interval` is specified, the scale extent is still expanded based on the auto-calculated
+    //      interval.
+    //    - No validation to the specified `interval`.
+    const userInterval = opt.userInterval;
+    if (userInterval != null) {
+        config.interval = userInterval;
+        config.intervalPrecision = getIntervalPrecision(userInterval);
+    }
 
     if (!fixMinMax[0]) {
-        newIntervalExtent[0] = round(mathFloor(newIntervalExtent[0] / interval) * interval, intervalPrecision);
+        newIntervalExtent[0] = round(
+            mathFloor(newIntervalExtent[0] / autoInterval) * autoInterval, autoIntervalPrecision
+        );
     }
     if (!fixMinMax[1]) {
-        newIntervalExtent[1] = round(mathCeil(newIntervalExtent[1] / interval) * interval, intervalPrecision);
+        newIntervalExtent[1] = round(
+            mathCeil(newIntervalExtent[1] / autoInterval) * autoInterval, autoIntervalPrecision
+        );
+    }
+    if (userInterval != null) { // Historical behavior.
+        config.niceExtent = newIntervalExtent.slice();
     }
 
     updateIntervalOrLogScaleForNiceOrAligned(
@@ -94,7 +117,7 @@ function calcNiceForIntervalOrLogScale(
 
 function intervalScaleCalcNiceTicks(
     scale: IntervalScale,
-    opt: Pick<ScaleCalcNiceMethodOpt, 'splitNumber' | 'minInterval' | 'maxInterval'>
+    opt: Pick<ScaleCalcNiceMethodOpt, 'splitNumber' | 'minInterval' | 'maxInterval' | 'userInterval'>
 ): IntervalScaleConfig {
     const splitNumber = ensureValidSplitNumber(opt.splitNumber, 5);
     // Use the span in the innermost linear space to calculate nice ticks.
@@ -114,6 +137,7 @@ function intervalScaleCalcNiceTicks(
     if (maxInterval != null && interval > maxInterval) {
         interval = maxInterval;
     }
+
     const intervalPrecision = getIntervalPrecision(interval);
     const extent = scale.getExtent();
     // By design, the `niceExtent` is inside the original extent
@@ -132,7 +156,10 @@ function intervalScaleCalcNiceTicks(
 
 function logScaleCalcNiceTicks(
     intervalStub: IntervalScale,
-    opt: Pick<ScaleCalcNiceMethodOpt, 'splitNumber' | 'minInterval' | 'maxInterval'>
+    opt: Pick<
+        ScaleCalcNiceMethodOpt,
+        'splitNumber' | 'minInterval' | 'maxInterval' | 'userInterval'
+    >
 ): IntervalScaleConfig {
     // [CAVEAT]: If updating this impl, need to sync it to `axisAlignTicks.ts`.
 
@@ -149,9 +176,7 @@ function logScaleCalcNiceTicks(
 
     // Interval should be integer
     let interval = mathMax(quantity(span), 1);
-
     const err = splitNumber / span * interval;
-
     // Filter ticks to get closer to the desired count.
     if (err <= 0.5) {
         // TODO: support other bases other than 10?
@@ -180,11 +205,13 @@ export type ScaleCalcNiceMethod = (
 ) => void;
 
 type ScaleCalcNiceMethodOpt = {
-    splitNumber?: number;
-    minInterval?: number;
-    maxInterval?: number;
-    fixMinMax?: ScaleExtentFixMinMax;
-    rawExtentResult?: ScaleRawExtentResultFinal;
+    splitNumber?: number | NullUndefined;
+    minInterval?: number | NullUndefined;
+    maxInterval?: number | NullUndefined;
+    userInterval?: number | NullUndefined;
+    userIntervalUseLegacy?: boolean | NullUndefined;
+    fixMinMax?: ScaleExtentFixMinMax | NullUndefined;
+    rawExtentResult?: ScaleRawExtentResultFinal | NullUndefined;
 };
 
 /**
@@ -228,26 +255,15 @@ export function scaleCalcNice2(
 
     const rawExtentResult = adoptScaleRawExtentInfoAndPrepare(scale, model, ecModel, axis, externalDataExtent);
 
-    // If some one specified the min, max. And the default calculated interval
-    // is not good enough. He can specify the interval. It is often appeared
-    // in angle axis with angle 0 - 360. Interval calculated in interval scale is hard
-    // to be 60.
-    // In `xxxAxis.type: 'log'`, ec option `xxxAxis.interval` requires a logarithm-applied
-    // value rather than a value in the raw scale.
-    const interval = model.get('interval');
-    if (interval != null && (scale as IntervalScale).setConfig) {
-        (scale as IntervalScale).setConfig({interval});
-    }
-    else {
-        const isIntervalOrTime = isIntervalScale(scale) || isTimeScale(scale);
-        scaleCalcNiceDirectly(scale, {
-            splitNumber: model.get('splitNumber'),
-            fixMinMax: rawExtentResult.fixMM,
-            minInterval: isIntervalOrTime ? model.get('minInterval') : null,
-            maxInterval: isIntervalOrTime ? model.get('maxInterval') : null,
-            rawExtentResult
-        });
-    }
+    const isIntervalOrTime = isIntervalScale(scale) || isTimeScale(scale);
+    scaleCalcNiceDirectly(scale, {
+        splitNumber: model.get('splitNumber'), // Backward compat - not get('xxx', true).
+        fixMinMax: rawExtentResult.fixMM,
+        userInterval: model.get('interval'), // Backward compat - not get('xxx', true).
+        minInterval: isIntervalOrTime ? model.get('minInterval') : null,
+        maxInterval: isIntervalOrTime ? model.get('maxInterval') : null,
+        rawExtentResult
+    });
 
     if (axis && ecModel) {
         adoptScaleExtentKindMapping(axis, scale, rawExtentResult);

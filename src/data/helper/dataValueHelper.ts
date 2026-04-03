@@ -326,9 +326,9 @@ export function parseSanitizationFilter(
 
 export function passesSanitizationFilter(filterParsed: DataSanitizationFilterParsed, value: number): boolean {
     return value > filterParsed.g
-        || value >= filterParsed.ge
-        || value < filterParsed.l
-        || value <= filterParsed.le;
+        && value >= filterParsed.ge
+        && value < filterParsed.l
+        && value <= filterParsed.le;
 }
 
 // --------- END: Data store sanitization filters ---------

@@ -686,6 +686,9 @@ class SeriesData<
     }
 
     /**
+     * NOTICE: `_approximateExtent` does not support filter. Callers must ensure the input extent
+     * to be handled by `scale.sanitizeExtent`.
+     *
      * Calculate extent on a filtered data might be time consuming.
      * Approximate extent is only used for: calculate extent of filtered data outside.
      */

@@ -30,7 +30,7 @@ import { Dictionary, NullUndefined } from '../../util/types';
 import DataZoomModel from './DataZoomModel';
 import { AxisBaseModel } from '../../coord/AxisBaseModel';
 import { getAxisMainType, isCoordSupported, DataZoomAxisDimension } from './helper';
-import { SINGLE_REFERRING } from '../../util/model';
+import { ensureExtentAscSimply, SINGLE_REFERRING } from '../../util/model';
 import { isOrdinalScale, isTimeScale } from '../../scale/helper';
 import {
     AXIS_EXTENT_INFO_BUILD_FROM_DATA_ZOOM, scaleRawExtentInfoCreate,
@@ -212,7 +212,16 @@ class AxisProxy {
             else {
                 hasPropModeValue = true;
                 // NOTE: `scale.parse` can also round input for 'time' or 'ordinal' scale.
-                boundValue = boundValue == null ? dataExtent[idx] : scale.parse(boundValue);
+                if (boundValue == null) {
+                    boundValue = dataExtent[idx];
+                }
+                else {
+                    // Need to parse user inputs from ec option or action param.
+                    boundValue = scale.parse(boundValue);
+                    if (scale.sanitize) {
+                        boundValue = scale.sanitize(boundValue, dataExtent);
+                    }
+                }
                 // Calculating `percent` from `value` may be not accurate, because
                 // This calculation can not be inverted, because all of values that
                 // are overflow the `dataExtent` will be calculated to percent '100%'
@@ -228,6 +237,7 @@ class AxisProxy {
                 : boundPercent;
         });
 
+        // Historical behavior - enable switching.
         asc(valueWindow);
         asc(percentWindow);
 
@@ -267,7 +277,7 @@ class AxisProxy {
                     needRound[i] = true;
                 }
             }
-            simplyEnsureAsc(toWindow);
+            ensureExtentAscSimply(toWindow);
         }
 
         // - In 'time' and 'ordinal' scale, rounding by 0 is required.
@@ -310,19 +320,13 @@ class AxisProxy {
                 }
             }
         });
-        simplyEnsureAsc(valueWindow);
+        ensureExtentAscSimply(valueWindow);
 
         const percentInvertedWindow = [
             linearMap(valueWindow[0], dataExtent, percentExtent, true),
             linearMap(valueWindow[1], dataExtent, percentExtent, true),
         ] as [number, number];
-        simplyEnsureAsc(percentInvertedWindow);
-
-        function simplyEnsureAsc(window: number[]): void {
-            if (window[0] > window[1]) {
-                window[0] = window[1];
-            }
-        }
+        ensureExtentAscSimply(percentInvertedWindow);
 
         return {
             value: valueWindow,

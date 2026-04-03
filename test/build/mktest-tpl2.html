@@ -61,6 +61,7 @@ under the License.
                 // 'theme/dark.js', // auto register if load.
             ], function (echarts /*, data */) {
 
+                // Inputs (HTML <select>)
                 var _ctx = {
                     series0Type: {
                         value: 'line',
@@ -127,12 +128,8 @@ under the License.
                     ],
                     option: createOption(),
 
-                    // ==============================================================
-                    // !      Delete the content below if you do not need them      !
                     inputsStyle: 'compact',
                     inputs: testHelper.createInputsSimply(_ctx, updateChart)
-                    // !      Delete the content above if you do not need them      !
-                    // ==============================================================
 
                 }); // End of `testHelper.create`
 

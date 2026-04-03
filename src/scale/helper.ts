@@ -235,7 +235,7 @@ export function intervalScaleEnsureValidExtent(
     if (extent[0] === extent[1]) {
         // If `containShape`, the extent must be evenly distributed to both sides;
         // otherwise, shape (e.g., bars) may be overflow and clipped.
-        const containShape = rawExtentResult.containShape;
+        const containShapeRequired = rawExtentResult.ctnShp;
 
         if (extent[0] !== 0) {
             // Expand extent
@@ -255,7 +255,7 @@ export function intervalScaleEnsureValidExtent(
             }
         }
         else {
-            if (containShape) {
+            if (containShapeRequired) {
                 extent[0] = -1;
                 extent[1] = 1;
             }

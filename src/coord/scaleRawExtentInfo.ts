@@ -35,6 +35,7 @@ import {
     unionExtentFromExtent,
     unionExtentStartFromNumber,
     unionExtentEndFromNumber,
+    ensureExtentAscSimply,
 } from '../util/model';
 import { getDataDimensionsOnAxis, isAxisOnBand } from './axisHelper';
 import {
@@ -87,7 +88,7 @@ export type ScaleExtentFixMinMax = boolean[];
 
 type ScaleRawExtentResultForContainShape = Pick<
     ScaleRawExtentInternal,
-    'noZoomEffMM' | 'containShape'
+    'noZoomEffMM'
 >;
 
 /**
@@ -102,7 +103,7 @@ export type ScaleRawExtentResultForZoom = {
 
 export type ScaleRawExtentResultFinal = Pick<
     ScaleRawExtentInternal,
-    'fixMM' | 'zoomFixMM' | 'liSupp' | 'isBlank' | 'needCrossZero' | 'needToggleAxisInverse' | 'containShape'
+    'fixMM' | 'zoomFixMM' | 'liSupp' | 'isBlank' | 'needCrossZero' | 'needToggleAxisInverse' | 'ctnShp'
 > & {
     // This is the effective min max. "effective" indicates `SCALE_EXTENT_KIND_EFFECTIVE`.
     // It is determined by series data extent and ec options such as `xxxAxis.min/max`,
@@ -134,9 +135,6 @@ interface ScaleRawExtentInternal {
     // "effective" means `SCALE_EXTENT_KIND_EFFECTIVE`.
     noZoomEffMM: number[];
 
-    // Linear supplement for min max expansion.
-    liSupp: number[] | NullUndefined;
-
     // data min max, an union from series data on this axis and `model.dataMin/dataMax`.
     // May be at the initial state `[Infinity, -Infinity]`.
     dataMM: number[];
@@ -164,7 +162,12 @@ interface ScaleRawExtentInternal {
 
     needToggleAxisInverse: boolean;
 
-    containShape: boolean;
+    // Whether "containShape" is required on this axis.
+    // NOTICE: This is just a requirement; "containShape" is performed only if possible.
+    ctnShp: boolean;
+
+    // Linear supplement for min max expansion by "containShape".
+    liSupp: number[] | NullUndefined;
 }
 
 export type AxisContainShapeHandler = (
@@ -343,25 +346,19 @@ export class ScaleRawExtentInfo {
             }
         }
 
-        const onBand = isAxisOnBand(scale, model);
-        let containShape = model.get('containShape', true);
-        if (containShape == null && !onBand) {
-            containShape = true;
-        }
-
         const internal: ScaleRawExtentInternal = this._i = {
             scale,
             dataMM,
             noZoomEffMM,
             zoomMM: [],
-            liSupp: null,
             fixMM,
             zoomFixMM: [false, false],
             startValue,
             isBlank,
             needCrossZero,
             needToggleAxisInverse,
-            containShape,
+            ctnShp: null,
+            liSupp: null,
         };
 
         sanitizeExtent(internal, noZoomEffMM);
@@ -371,7 +368,6 @@ export class ScaleRawExtentInfo {
         const internal = this._i;
         return {
             noZoomEffMM: internal.noZoomEffMM.slice(),
-            containShape: internal.containShape
         };
     }
 
@@ -396,8 +392,8 @@ export class ScaleRawExtentInfo {
             isBlank: internal.isBlank,
             needCrossZero: internal.needCrossZero,
             needToggleAxisInverse: internal.needToggleAxisInverse,
+            ctnShp: internal.ctnShp,
             liSupp: internal.liSupp,
-            containShape: internal.containShape,
             effMM: noZoomEffMM.slice(),
             mapMM: makeNoZoomMappingMM(internal),
         };
@@ -448,12 +444,16 @@ export class ScaleRawExtentInfo {
         this._i.zoomMM[idxMinMax] = val;
     }
 
-    setLiSupp(linearSupplement: number[]) {
+    setContainShape(opt: {
+        ctnShp: boolean;
+        liSupp: number[] | NullUndefined;
+    }) {
         const internal = this._i;
         if (__DEV__) {
             assert(internal.liSupp == null);
         }
-        internal.liSupp = linearSupplement;
+        internal.liSupp = opt.liSupp;
+        internal.ctnShp = opt.ctnShp;
     }
 
 }
@@ -484,11 +484,14 @@ function makeNoZoomMappingMM(internal: ScaleRawExtentInternal): number[] {
  */
 function sanitizeExtent(
     internal: ScaleRawExtentInternal,
-    mm: (number | NullUndefined)[]
+    mm: number[]
 ): void {
     const scale = internal.scale;
-    if (scale.sanitizeExtent) {
-        scale.sanitizeExtent(mm, internal.dataMM);
+    const dataMM = internal.dataMM;
+    if (scale.sanitize) {
+        mm[0] = scale.sanitize(mm[0], dataMM);
+        mm[1] = scale.sanitize(mm[1], dataMM);
+        ensureExtentAscSimply(mm);
     }
 }
 
@@ -625,7 +628,7 @@ export function scaleRawExtentInfoCreate(
 
     scaleRawExtentInfoCreateDeal(scale, axis, axisDim, model, ecModel, from);
 
-    calcContainShape(scale, axis, ecModel, scale.rawExtentInfo);
+    calcContainShape(scale, axis, model, ecModel, scale.rawExtentInfo);
 }
 
 function scaleRawExtentInfoCreateDeal(
@@ -804,25 +807,33 @@ export function adoptScaleRawExtentInfoAndPrepare(
 function calcContainShape(
     scale: Scale,
     axis: Axis,
+    model: AxisBaseModel,
     ecModel: GlobalModel,
     rawExtentInfo: ScaleRawExtentInfo,
 ): void {
     // `scale.getExtent` is required by `AxisContainShapeHandler` (required by `calcBandWidth` effectively).
     // See `createBandWidthBasedAxisContainShapeHandler` in `axisSnippet.ts` as an example.
     // See also BAND_WIDTH_USED_LINEAR_SCALE_SPAN.
-    const {noZoomEffMM, containShape} = rawExtentInfo.makeForContainShape();
+    const {noZoomEffMM} = rawExtentInfo.makeForContainShape();
     axis.scale.setExtent(noZoomEffMM[0], noZoomEffMM[1]);
 
-    if (!containShape) {
+    const onBand = isAxisOnBand(scale, model);
+    let modelContainShape = model.get('containShape', true);
+    if (modelContainShape == null && !onBand) {
+        modelContainShape = true;
+    }
+    if (!modelContainShape) {
         return;
     }
 
     // `NullUndefined` indicates that `linearSupplement` is not introduced.
     let linearSupplement: number[] | NullUndefined;
+    let containShapeRequired = false;
 
     eachKeyOnAxis(axis, function (axisStatKey) {
         const handler = axisContainShapeHandlerMap.get(axisStatKey);
         if (handler) {
+            containShapeRequired = true;
             const singleLinearSupplement = handler(axis, scale, ecModel);
             if (singleLinearSupplement) {
                 linearSupplement = linearSupplement || [0, 0];
@@ -832,9 +843,10 @@ function calcContainShape(
         }
     });
 
-    if (linearSupplement) {
-        rawExtentInfo.setLiSupp(linearSupplement);
-    }
+    rawExtentInfo.setContainShape({
+        ctnShp: containShapeRequired,
+        liSupp: linearSupplement,
+    });
 }
 
 export function adoptScaleExtentKindMapping(
