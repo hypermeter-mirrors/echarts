@@ -32,6 +32,7 @@ import {
     getScaleExtentForTickUnsafe,
     initBreakOrLinearMapper, ScaleMapperGeneric
 } from './scaleMapper';
+import { warn } from '../util/log';
 
 
 export type IntervalScaleConfig = {
@@ -207,8 +208,9 @@ class IntervalScale extends Scale<IntervalScale> {
 
         // [CAVEAT]: If changing this logic, must sync it to `axisAlignTicks.ts`.
 
-        // Consider this case: using dataZoom toolbox, zoom and zoom.
-        const safeLimit = 10000;
+        // A fail-safe is required since `interval` can be user specified, or for the case
+        // that using dataZoom toolbox and zoom repeatedly.
+        const safeLimit = 3000;
 
         if (extent[0] < niceExtent[0]) {
             ticks.push({
@@ -267,6 +269,9 @@ class IntervalScale extends Scale<IntervalScale> {
                 break;
             }
             if (ticks.length > safeLimit) {
+                if (__DEV__) {
+                    warn('Exceed safe limit in IntervalScale["getTicks"].');
+                }
                 return [];
             }
         }

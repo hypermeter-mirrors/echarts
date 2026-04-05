@@ -266,7 +266,7 @@ export function scaleCalcNice2(
     });
 
     if (axis && ecModel) {
-        adoptScaleExtentKindMapping(axis, scale, rawExtentResult);
+        adoptScaleExtentKindMapping(axis, scale, rawExtentResult, ecModel);
     }
 
     if (__DEV__) {

@@ -192,7 +192,7 @@ export function scaleCalcAlign(
 
     function loopIncreaseInterval(cb: () => boolean) {
         // Typically this loop runs less than 5 times. But we still
-        // use a safeguard for future changes.
+        // use a fail-safe for future changes.
         const LOOP_MAX = 50;
         let loopGuard = 0;
         for (; loopGuard < LOOP_MAX; loopGuard++) {
@@ -304,7 +304,7 @@ export function scaleCalcAlign(
                     //  - In LogScale, series data are usually either all > 1 or all < 1, rather than both,
                     //    that is, logarithm result is typically either all positive or all negative.
                     let moreCountPair: number[];
-                    const mayEnhanceZero = targetExtentInfo.needCrossZero || isTargetLogScale;
+                    const mayEnhanceZero = targetExtentInfo.incl0 || isTargetLogScale;
                     // `bounds < 0` or `bounds > 0` may require more complex handling, so we only auto handle
                     // `bounds === 0`.
                     if (mayEnhanceZero && targetExtent[0] === 0) {

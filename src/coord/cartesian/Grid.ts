@@ -59,7 +59,7 @@ import {
     createCartesianAxisViewCommonPartBuilder,
     updateCartesianAxisViewCommonPartBuilder,
 } from './cartesianAxisHelper';
-import { AxisBaseOptionCommon, CategoryAxisBaseOption, NumericAxisBaseOptionCommon } from '../axisCommonTypes';
+import { AxisBaseOptionCommon, NumericAxisBaseOptionCommon } from '../axisCommonTypes';
 import { AxisBaseModel } from '../AxisBaseModel';
 import { isIntervalOrLogScale, isOrdinalScale } from '../../scale/helper';
 import { scaleCalcAlign } from '../axisAlignTicks';

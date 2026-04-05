@@ -30,7 +30,7 @@ interface AxisModelCommonMixin<Opt extends AxisBaseOption> extends Pick<Model<Op
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class AxisModelCommonMixin<Opt extends AxisBaseOption> {
 
-    getNeedCrossZero(): boolean {
+    needIncludeZero(): boolean {
         return !(this.option as ValueAxisBaseOption).scale;
     }
 

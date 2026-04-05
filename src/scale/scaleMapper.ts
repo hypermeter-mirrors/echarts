@@ -30,10 +30,10 @@ import { DataSanitizationFilter } from '../data/helper/dataValueHelper';
 
 /**
  * Illustration:
- *  `SCALE_EXTENT_KIND_EFFECTIVE`:     |------------|     (always exist)
- *  `SCALE_EXTENT_KIND_MAPPING`:   |---|------------|--|  (present only when it is specified by `setExtent2`)
+ *  SCALE_EXTENT_KIND_EFFECTIVE:     |------------|     (always exist)
+ *  SCALE_EXTENT_KIND_MAPPING:   |---|------------|--|  (present only when it is specified by `setExtent2`)
  *
- *  - `SCALE_EXTENT_KIND_EFFECTIVE`:
+ *  - [SCALE_EXTENT_KIND_EFFECTIVE]:
  *    It is a portion of a scale extent that is functional on most features, including:
  *      - All tick/label-related calculation.
  *      - `dataZoom` controlled ends.
@@ -44,7 +44,7 @@ import { DataSanitizationFilter } from '../data/helper/dataValueHelper';
  *      - etc.
  *    `SCALE_EXTENT_KIND_EFFECTIVE` always exists.
  *
- *  - `SCALE_EXTENT_KIND_MAPPING`:
+ *  - [SCALE_EXTENT_KIND_MAPPING]:
  *    It is an expanded extent from ends of `SCALE_EXTENT_KIND_EFFECTIVE` to accommodate shapes at edges to
  *    avoid overflow. They can be typically used by bar/candlestick series on category axis with
  *    `boundaryGap: false`, or on other numeric axes. ec option `xxxAxis.containShape` is the switch.
@@ -95,12 +95,12 @@ const SCALE_MAPPER_METHOD_NAMES_MAP: Record<keyof ScaleMapper, 1> = {
 const SCALE_MAPPER_METHOD_NAMES = keys(SCALE_MAPPER_METHOD_NAMES_MAP);
 
 /**
- * - `SCALE_MAPPER_DEPTH_OUT_OF_BREAK`:
+ * - [SCALE_MAPPER_DEPTH_OUT_OF_BREAK]:
  *   In `transformIn`, it transforms a value from the outermost space to the space before break being applied.
  *   In `transformOut`, it transforms a value from the space before break being applied to the outermost space.
  *   Typically nice axis ticks are picked in that space due to the current design of nice ticks
  *   algorithm, while size related features may use `SCALE_MAPPER_DEPTH_INNERMOST`.
- * - `SCALE_MAPPER_DEPTH_INNERMOST`:
+ * - [SCALE_MAPPER_DEPTH_INNERMOST]:
  *   Currently only linear space is used as the innermost space.
  */
 export type ScaleMapperDepthOpt = {
@@ -121,7 +121,7 @@ export type ScaleMapperTransformInOpt =
     ScaleMapperDepthOpt;
 
 /**
- * [SCALE_COMPOSITION_AND_TRANSFORMATION]:
+ * @tutorial [SCALE_COMPOSITION_AND_TRANSFORMATION]:
  *  `ScaleMapper` is designed for multiple steps of numeric transformations from a certain space to a linear space,
  *  or vice versa. Each steps is implemented as a `ScaleMapper`, and composed like a decorator pattern. And some
  *  steps, such as "axis breaks transfromation", can be skipped when no breaks for performance consideration.
@@ -152,7 +152,7 @@ export type ScaleMapperTransformInOpt =
  *       └─category_to_numeric─► linear_space(in a LinearScaleMapper owned by a BreakScaleMapper)
  *
  *
- * [SCALE_EXTENT_CONSTRUCTION]:
+ * @tutorial [SCALE_EXTENT_CONSTRUCTION]:
  *  The full construction processing of the scale extent in EC_MAIN_CYCLE:
  *  - step#1. At `CoordinateSystem#create` stage, requirements of collecting series data extents are
  *            committed to `associateSeriesWithAxis`, and `Scale` instances are created.
@@ -160,13 +160,11 @@ export type ScaleMapperTransformInOpt =
  *            `ScaleRawExtentInfo` instances to manage extent related configurations
  *              - at "data processing" stage for dataZoom controlled axes, if any, or
  *              - at "CoordinateSystem#update" stage for all other axes.
- *            `calcContainShape` is performed in this step. See CONTAIN_SHAPE_INPUT_SCALE_EXTENT for
- *            the reason.
  *  - step#3. Perform "nice" (see `scaleCalcNice`) or "align" (see `scaleCalcAlign`) strategies to
  *            modify the original extent from `ScaleRawExtentInfo` instance, if needed, at
  *            "CoordinateSystem#update" stage.
- *  - step#4. Set `SCALE_EXTENT_KIND_MAPPING` if needed (see `adoptScaleExtentKindMapping`; introduced
- *            by features like "containShape") at "CoordinateSystem#update" stage.
+ *  - step#4. `calcContainShape` is performed. Set `SCALE_EXTENT_KIND_MAPPING` if needed.
+ *            See AXIS_CONTAIN_SHAPE_PROCESSING_ORDER for more details.
  *
  */
 export interface ScaleMapper extends ScaleMapperGeneric<ScaleMapper> {}

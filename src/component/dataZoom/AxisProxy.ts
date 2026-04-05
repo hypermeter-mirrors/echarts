@@ -48,10 +48,7 @@ interface MinMaxSpan {
 
 export interface AxisProxyWindow {
     // NOTE: May include non-effective portion.
-    value: number[];
-    // Although `dataZoom` effectively calculates based on "noZoomMapMM" (where
-    // containShape is considered), `dataZoom` labels always show `noZoomEffMM`.
-    noZoomEffMM: ScaleRawExtentResultForZoom['noZoomEffMM'];
+    value: ScaleRawExtentResultForZoom;
     percent: number[];
     // Percent invert from "value window", which may be slightly different from "percent window" due to some
     // handling such as rounding. The difference may be magnified in cases like "alignTicks", so we use
@@ -151,8 +148,6 @@ class AxisProxy {
 
     /**
      * [CAVEAT] Keep this method pure, so that it can be called multiple times.
-     *
-     * Only calculate by given range and cumulative series data extent, do not change anything.
      */
     calculateDataWindow(
         opt: {
@@ -162,7 +157,7 @@ class AxisProxy {
             endValue?: number | string | Date
         }
     ): AxisProxyWindow {
-        const {noZoomMapMM: dataExtent, noZoomEffMM} = this._extent;
+        const dataExtent = this._extent;
         const axis = this.getAxisModel().axis;
         const scale = axis.scale;
         const dataZoomModel = this._dataZoomModel;
@@ -330,7 +325,6 @@ class AxisProxy {
 
         return {
             value: valueWindow,
-            noZoomEffMM: noZoomEffMM.slice(),
             percent: percentWindow,
             percentInverted: percentInvertedWindow,
             valuePrecision: precision,
@@ -376,10 +370,6 @@ class AxisProxy {
         }
         const {percent, value} = this._window = this.calculateDataWindow(opt);
 
-        // For value axis, if min/max/scale are not set, we just use the extent obtained
-        // by series data, which may be a little different from the extent calculated by
-        // `axisHelper.getScaleExtent`. But the different just affects the experience a
-        // little when zooming. So it will not be fixed until some users require it strongly.
         if (percent[0] !== 0) {
             rawExtentInfo.setZoomMM(0, value[0]);
         }
@@ -487,7 +477,7 @@ class AxisProxy {
     private _updateMinMaxSpan() {
         const minMaxSpan = this._minMaxSpan = {} as MinMaxSpan;
         const dataZoomModel = this._dataZoomModel;
-        const dataExtent = this._extent.noZoomMapMM;
+        const dataExtent = this._extent;
 
         each(['min', 'max'], function (minMax) {
             let percentSpan = dataZoomModel.get(minMax + 'Span' as 'minSpan' | 'maxSpan');

@@ -45,7 +45,9 @@ import type GlobalModel from '../model/Global';
 import { error } from '../util/log';
 import type Axis from './Axis';
 import { isNullableNumberFinite, mathMax, mathMin } from '../util/number';
-import { SCALE_EXTENT_KIND_MAPPING } from '../scale/scaleMapper';
+import {
+    SCALE_EXTENT_KIND_MAPPING
+} from '../scale/scaleMapper';
 import { AxisStatKey, eachKeyOnAxis, eachSeriesOnAxis } from './axisStatistics';
 
 
@@ -86,24 +88,15 @@ export type AxisExtentInfoBuildFrom =
  */
 export type ScaleExtentFixMinMax = boolean[];
 
-type ScaleRawExtentResultForContainShape = Pick<
-    ScaleRawExtentInternal,
-    'noZoomEffMM'
->;
-
 /**
  * Return the min max before `dataZoom` applied.
+ * This is `noZoomEffMM`, corresponding to `SCALE_EXTENT_KIND_EFFECTIVE`.
  */
-export type ScaleRawExtentResultForZoom = {
-    // "effective" means `SCALE_EXTENT_KIND_EFFECTIVE`.
-    noZoomEffMM: number[];
-    // "mapping" means `SCALE_EXTENT_KIND_MAPPING`.
-    noZoomMapMM: number[];
-};
+export type ScaleRawExtentResultForZoom = number[];
 
 export type ScaleRawExtentResultFinal = Pick<
     ScaleRawExtentInternal,
-    'fixMM' | 'zoomFixMM' | 'liSupp' | 'isBlank' | 'needCrossZero' | 'needToggleAxisInverse' | 'ctnShp'
+    'fixMM' | 'zoomFixMM' | 'isBlank' | 'incl0' | 'tggAxInv' | 'ctnShp'
 > & {
     // This is the effective min max. "effective" indicates `SCALE_EXTENT_KIND_EFFECTIVE`.
     // It is determined by series data extent and ec options such as `xxxAxis.min/max`,
@@ -111,16 +104,11 @@ export type ScaleRawExtentResultFinal = Pick<
     // Ensure `effMM` has only finite numbers or `NaN`, but never has `null`/`undefined`.
     // `NaN` means min/max axis is blank.
     effMM: number[];
-
-    // Expected min max for mapping. "mapping" indicates `SCALE_EXTENT_KIND_MAPPING`.
-    // It has to be applied after "nice" strategies (see `scaleCalcNice`) being applied,
-    // since "nice" strategies may expand the scale extent originated from `effMM`.
-    mapMM: number[];
 };
 
 type ScaleRawExtentResultOthers = Pick<
     ScaleRawExtentInternal,
-    'startValue' | 'dataMM'
+    'startValue'
 >;
 
 
@@ -131,7 +119,7 @@ interface ScaleRawExtentInternal {
 
     scale: Scale;
 
-    // The effective min max before `dataZoom` applied.
+    // The effective min max before `dataZoom` being applied.
     // "effective" means `SCALE_EXTENT_KIND_EFFECTIVE`.
     noZoomEffMM: number[];
 
@@ -139,9 +127,7 @@ interface ScaleRawExtentInternal {
     // May be at the initial state `[Infinity, -Infinity]`.
     dataMM: number[];
 
-    // Specified by `dataZoom` when its start/end is not 0%/100%.
-    // `NullUndefined` means not specified.
-    // Highest priority if specified.
+    // See `ScaleRawExtentInfo['setZoomMM']`
     zoomMM: (number | NullUndefined)[];
 
     // See comments of `ScaleExtentFixMinMax`
@@ -158,22 +144,20 @@ interface ScaleRawExtentInternal {
     // Mark that the axis should be blank.
     isBlank: boolean;
 
-    needCrossZero: boolean;
+    // Need to include zero
+    incl0: boolean;
 
-    needToggleAxisInverse: boolean;
+    // Need to toggle axis inverse.
+    tggAxInv: boolean;
 
     // Whether "containShape" is required on this axis.
     // NOTICE: This is just a requirement; "containShape" is performed only if possible.
     ctnShp: boolean;
-
-    // Linear supplement for min max expansion by "containShape".
-    liSupp: number[] | NullUndefined;
 }
 
 export type AxisContainShapeHandler = (
     axis: Axis,
-    scale: Scale,
-    ecModel: GlobalModel
+    ecModel: GlobalModel,
     // @return: supplement in linear space.
     //  Must ensure: `supplement[0] <= 0 && supplement[1] >= 0`
     //  - e.g., [-50, 70] indicates the final extent should calculated by adding this supplement:
@@ -198,7 +182,8 @@ export class ScaleRawExtentInfo {
         model: AxisBaseModel,
         // Typically: data extent from all series on this axis.
         dataExtent: number[],
-        requireStartValue: boolean
+        requireStartValue: boolean,
+        requireContainShape: boolean
     ) {
         const isOrdinal = isOrdinalScale(scale);
 
@@ -238,7 +223,7 @@ export class ScaleRawExtentInfo {
         // (2) For others:
         //      + `boundaryGap` is applied (if min/max set, boundaryGap is
         //      disabled).
-        //      + If `needCrossZero`, min/max should be zero, otherwise, min/max should
+        //      + If `needIncludeZero`, min/max should be zero, otherwise, min/max should
         //      be the result that originalExtent enlarged by boundaryGap.
         // (3) If no data, it should be ensured that `scale.setBlank` is set.
 
@@ -301,10 +286,10 @@ export class ScaleRawExtentInfo {
         const isBlank = eqNaN(noZoomEffMM[0]) || eqNaN(noZoomEffMM[1])
             || (isOrdinal && !axisDataLen);
 
-        // NOTE: `needCrossZero` is not applicable to LogScale, TimeScale, OrdinalScale.
-        const needCrossZeroApplicable = isIntervalScale(scale);
-        const needCrossZero = needCrossZeroApplicable && model.getNeedCrossZero && model.getNeedCrossZero();
-        if (needCrossZero) {
+        // NOTE: `needIncludeZero` is not applicable to LogScale, TimeScale, OrdinalScale.
+        const needIncludeZeroApplicable = isIntervalScale(scale);
+        const needIncludeZero = needIncludeZeroApplicable && model.needIncludeZero && model.needIncludeZero();
+        if (needIncludeZero) {
             if (noZoomEffMM[0] > 0 && noZoomEffMM[1] > 0 && !fixMM[0]) {
                 noZoomEffMM[0] = 0;
                 // fixMM[0] = true;
@@ -321,7 +306,7 @@ export class ScaleRawExtentInfo {
             // or `xxxAxis.min > dataExtent[1]` the behavior is sometimes like `xxxAxis.inverse = true`,
             // sometimes abnormal. We remain backward compatible with the former one, though this feature
             // may not be reasonable.
-            // And handle it after "needCrossZero" is also for backward compatibility.
+            // And handle it after "needIncludeZero" is also for backward compatibility.
             noZoomEffMM.reverse();
             needToggleAxisInverse = true;
         }
@@ -334,7 +319,7 @@ export class ScaleRawExtentInfo {
         if (isNullableNumberFinite(startValue)
             // Keep backward compatibility and enable `xxxAxis.scale: true` enabled on bar series:
             // if `xxxAxis.scale: true` and `startValue` is not specified, do not union the default `startValue`,
-            && (startValueSpecified || !needCrossZeroApplicable || needCrossZero)
+            && (startValueSpecified || !needIncludeZeroApplicable || needIncludeZero)
         ) {
             if (startValue < noZoomEffMM[0] && !fixMM[0]) {
                 noZoomEffMM[0] = startValue;
@@ -355,28 +340,16 @@ export class ScaleRawExtentInfo {
             zoomFixMM: [false, false],
             startValue,
             isBlank,
-            needCrossZero,
-            needToggleAxisInverse,
-            ctnShp: null,
-            liSupp: null,
+            incl0: needIncludeZero,
+            tggAxInv: needToggleAxisInverse,
+            ctnShp: requireContainShape,
         };
 
         sanitizeExtent(internal, noZoomEffMM);
     }
 
-    makeForContainShape(): ScaleRawExtentResultForContainShape {
-        const internal = this._i;
-        return {
-            noZoomEffMM: internal.noZoomEffMM.slice(),
-        };
-    }
-
     makeNoZoom(): ScaleRawExtentResultForZoom {
-        const internal = this._i;
-        return {
-            noZoomEffMM: internal.noZoomEffMM.slice(),
-            noZoomMapMM: makeNoZoomMappingMM(internal),
-        };
+        return this._i.noZoomEffMM.slice();
     }
 
     makeFinal(): ScaleRawExtentResultFinal {
@@ -390,93 +363,49 @@ export class ScaleRawExtentInfo {
             fixMM,
             zoomFixMM,
             isBlank: internal.isBlank,
-            needCrossZero: internal.needCrossZero,
-            needToggleAxisInverse: internal.needToggleAxisInverse,
+            incl0: internal.incl0,
+            tggAxInv: internal.tggAxInv,
             ctnShp: internal.ctnShp,
-            liSupp: internal.liSupp,
             effMM: noZoomEffMM.slice(),
-            mapMM: makeNoZoomMappingMM(internal),
         };
         const effMM = result.effMM;
-        const mapMM = result.mapMM;
 
-        // NOTE:
-        //  - Switching `fixMM` probably leads to abrupt extent changes when draging a `dataZoom`
-        //    handle, since `fixMM` impact the "nice extent" and "nice ticks" calculation.
-        //    Consider a case:
-        //      dataZoom `start` is 2% but its `end` is 100%, (or vice versa), we currently only set `fixMM[0]`
-        //      as `true` but remain `fixMM[1]` as `false` for this case to avoid unnecessary abrupt change.
-        //      Incidentally, the effect is not unacceptable if we set both `fixMM[0]/[1]` as `true`.
-        //  - `zoomMM` is calculated based on `makeNoZoomMappingMM`, where `liSupp` is included.
-        //    `zoomMM` overflows `noZoomEffMM` only if `dataZoom` ends reach the portion of `liSupp`.
+        // NOTE: Switching `fixMM` probably leads to abrupt extent changes when draging a `dataZoom`
+        //  handle, since `fixMM` impact the "nice extent" and "nice ticks" calculation.
+        //  Consider a case:
+        //    dataZoom `start` is 2% but its `end` is 100%, (or vice versa), we currently only set `fixMM[0]`
+        //    as `true` but remain `fixMM[1]` as `false` for this case to avoid unnecessary abrupt change.
+        //    Incidentally, the effect is not unacceptable if we set both `fixMM[0]/[1]` as `true`.
         if (zoomMM[0] != null) {
-            effMM[0] = mathMax(noZoomEffMM[0], zoomMM[0]);
-            mapMM[0] = zoomMM[0];
+            effMM[0] = zoomMM[0];
             fixMM[0] = zoomFixMM[0] = true;
         }
         if (zoomMM[1] != null) {
-            // `zoomMM` may overflow `noZoomEffMM` due to `liSupp`, so clamp it by `noZoomEffMM`.
-            effMM[1] = mathMin(noZoomEffMM[1], zoomMM[1]);
-            mapMM[1] = zoomMM[1];
+            effMM[1] = zoomMM[1];
             fixMM[1] = zoomFixMM[1] = true;
         }
-
         sanitizeExtent(internal, effMM);
-        sanitizeExtent(internal, mapMM);
 
         return result;
     }
 
-    makeOthers(): ScaleRawExtentResultOthers {
-        const internal = this._i;
+    makeRenderInfo(): ScaleRawExtentResultOthers {
         return {
-            dataMM: internal.dataMM.slice(),
-            startValue: internal.startValue,
+            startValue: this._i.startValue,
         };
     }
 
     /**
      * NOTICE:
-     *  The caller must ensure `start <= end` and the range is equal or less then `noZoomMappingMinMax`.
-     *  The outcome `_zoomMM` may have both `NullUndefined` and a finite value, like `[undefined, 123]`.
+     *  - Do not set them if the percent are 0% or 100%. (See `AxisProxy['reset']`.)
+     *  - The caller must ensure `start <= end` and the range is equal or less then `noZoomEffMM`.
+     *    (See `AxisProxy['calculateDataWindow']`.)
+     *  - The outcome `_zoomMM` may have both `NullUndefined` and a finite value, like `[undefined, 123]`.
      */
     setZoomMM(idxMinMax: 0 | 1, val: number | NullUndefined): void {
         this._i.zoomMM[idxMinMax] = val;
     }
 
-    setContainShape(opt: {
-        ctnShp: boolean;
-        liSupp: number[] | NullUndefined;
-    }) {
-        const internal = this._i;
-        if (__DEV__) {
-            assert(internal.liSupp == null);
-        }
-        internal.liSupp = opt.liSupp;
-        internal.ctnShp = opt.ctnShp;
-    }
-
-}
-
-function makeNoZoomMappingMM(internal: ScaleRawExtentInternal): number[] {
-    const noZoomEffMM = internal.noZoomEffMM;
-    const linearSupplement = internal.liSupp;
-    const scale = internal.scale;
-    if (linearSupplement) {
-        const noZoomEffMMExp = [
-            mathMin(
-                noZoomEffMM[0],
-                scale.transformOut(scale.transformIn(noZoomEffMM[0], null) + linearSupplement[0], null)
-            ),
-            mathMax(
-                noZoomEffMM[1],
-                scale.transformOut(scale.transformIn(noZoomEffMM[1], null) + linearSupplement[1], null)
-            )
-        ];
-        sanitizeExtent(internal, noZoomEffMMExp);
-        return noZoomEffMMExp;
-    }
-    return noZoomEffMM.slice();
 }
 
 /**
@@ -626,9 +555,7 @@ export function scaleRawExtentInfoCreate(
         return;
     }
 
-    scaleRawExtentInfoCreateDeal(scale, axis, axisDim, model, ecModel, from);
-
-    calcContainShape(scale, axis, model, ecModel, scale.rawExtentInfo);
+    scaleRawExtentInfoCreateDeal(scale, axis, axisDim, model, from);
 }
 
 function scaleRawExtentInfoCreateDeal(
@@ -636,7 +563,6 @@ function scaleRawExtentInfoCreateDeal(
     axis: Axis,
     axisDim: DimensionName,
     model: AxisBaseModel,
-    ecModel: GlobalModel,
     from: AxisExtentInfoBuildFrom
 ): void {
     const scaleStore = ensureScaleStore(axis);
@@ -679,7 +605,9 @@ function scaleRawExtentInfoCreateDeal(
         }
     });
 
-    const rawExtentInfo = new ScaleRawExtentInfo(scale, model, extent, requireStartValue);
+    const requireContainShape = determineRequireContainShape(scale, axis, model);
+
+    const rawExtentInfo = new ScaleRawExtentInfo(scale, model, extent, requireStartValue, requireContainShape);
     injectScaleRawExtentInfo(scale, rawExtentInfo, from);
 
     scaleStore.extent = null; // Clean up
@@ -702,7 +630,7 @@ function scaleRawExtentInfoBuildDefault(
     }
     injectScaleRawExtentInfo(
         scale,
-        new ScaleRawExtentInfo(scale, axisLike.model, dataExtent, false),
+        new ScaleRawExtentInfo(scale, axisLike.model, dataExtent, false, false),
         AXIS_EXTENT_INFO_BUILD_FROM_EMPTY
     );
 }
@@ -764,18 +692,15 @@ export function adoptScaleRawExtentInfoAndPrepare(
     }
     const rawExtentResult = scale.rawExtentInfo.makeFinal();
 
-    // NOTE: The scale extent is at least required in:
-    //  - `AxisContainShapeHandler`, such as `makeColumnLayout` in `barGrid.ts`. And this should be the raw
-    //    extent instead of the "nice" extent for better preciseness.
-    //  - Nice extent calculation and axis align calculation, where the transformed intermediate extent may
-    //    be required.
+    // NOTE: This `scale.setExtent()` is required by:
+    //  - `axisNiceTicks.ts` and `axisAlignTicks.ts`, where the internal `scaleMapper` may be required.
     const effectiveMinMax = rawExtentResult.effMM;
     scale.setExtent(effectiveMinMax[0], effectiveMinMax[1]);
 
     scale.setBlank(rawExtentResult.isBlank);
 
     if (axis
-        && rawExtentResult.needToggleAxisInverse
+        && rawExtentResult.tggAxInv
         && ecModel && !ecModel.get('legacyMinMaxDontInverseAxis')
     ) {
         axis.inverse = !axis.inverse;
@@ -784,57 +709,77 @@ export function adoptScaleRawExtentInfoAndPrepare(
     return rawExtentResult;
 }
 
-/**
- * These handlers implement ec option `someAxis.containShape`. That is, expand scale extent slightly to
- * ensure shapes of specific series are fully contained in the axis extent without overflow.
- *
- * NOTICE:
- *  - Scale extent (data extent) and axis pixel extent (pixel extent) and are required as inputs.
- *    - [CONTAIN_SHAPE_INPUT_SCALE_EXTENT]:
- *      Scale extent will be set as `noZoomEffMM`, because if `dataZoom` exists, "bandWidthInDataSpace"
- *      should be calculated based on `noZoomEffMM`, rather than `dataZoom`-shrunk extent.
- *      Transfromations in `scaleMapper` is theoretically involved, so we have to set the input extent
- *      to `scale.setExtent()`, rather than as a plain parameter.
- *    - Axis pixel extent has been set outside, though it may be modified later (e.g., via `outerBounds`).
- *  - This feature can be implemented by either expanding axis extent or scale extent. The choice depends
- *    on whether series shape sizes are defined in pixels or data space. For example, scatter series glyph
- *    sizes is mainly defined in pixel, while bar series `bandWidth` is mainly determined by given percents
- *    of data scale. Since currently scatter does not require this feature, we implement it only on the
- *    data scale.
- *
- * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
- */
-function calcContainShape(
+function determineRequireContainShape(
     scale: Scale,
     axis: Axis,
     model: AxisBaseModel,
-    ecModel: GlobalModel,
-    rawExtentInfo: ScaleRawExtentInfo,
-): void {
-    // `scale.getExtent` is required by `AxisContainShapeHandler` (required by `calcBandWidth` effectively).
-    // See `createBandWidthBasedAxisContainShapeHandler` in `axisSnippet.ts` as an example.
-    // See also BAND_WIDTH_USED_LINEAR_SCALE_SPAN.
-    const {noZoomEffMM} = rawExtentInfo.makeForContainShape();
-    axis.scale.setExtent(noZoomEffMM[0], noZoomEffMM[1]);
-
+): boolean {
     const onBand = isAxisOnBand(scale, model);
     let modelContainShape = model.get('containShape', true);
     if (modelContainShape == null && !onBand) {
         modelContainShape = true;
     }
     if (!modelContainShape) {
+        return false;
+    }
+    let requireContainShape = false;
+    eachKeyOnAxis(axis, function (axisStatKey) {
+        requireContainShape = !!axisContainShapeHandlerMap.get(axisStatKey) || requireContainShape;
+    });
+    return requireContainShape;
+}
+
+/**
+ * This implements ec option `someAxis.containShape`. That is, expand scale extent slightly to
+ * ensure shapes of specific series are fully contained in the axis extent without overflow.
+ *
+ * NOTICE:
+ *  Scale extent (data extent) and axis pixel extent (pixel extent) and are required as inputs.
+ *    - See BAND_WIDTH_USED_SCALE_LINEAR_SPAN.
+ *    - Axis pixel extent has been set outside, though it may be modified later (e.g., via `outerBounds`).
+ *
+ * @tutorial [AXIS_CONTAIN_SHAPE_PROCESSING_ORDER]
+ *  This is a trade-off between the following 2 approaches:
+ *    - Steps: (the current implementation)
+ *        1. Process `dataZoom` based on a full window `noZoomEffMM`.
+ *        2. Perform "nice" or "align" scale, where `intervalScaleEnsureValidExtent`-ish may be performed to
+ *           expand extent to avoid `extent[0] === extent[1]`.
+ *        3. Calculate linear supplement of containShape based on the final result.
+ *      Cons:
+ *        - Abrupt changes occur when zooming away from 0% or 100%.
+ *        - Edge shapes are clipped in "dataZoom shadow".
+ *    - Steps: (discarded)
+ *        1. Calculate linear supplement of containShape based on `noZoomEffMM` and
+ *           `intervalScaleEnsureValidExtent`-ish.
+ *        2. Process `dataZoom` based on a full window `noZoomEffMM + linearSupplement`.
+ *        3. Perform "nice"/"align" scale.
+ *      Cons:
+ *        - Input `startValue: 0` (in ec option or action) does not corresponds to `0%`, which is unacceptable.
+ *        - Not easy to perform `intervalScaleEnsureValidExtent`-ish before "nice"/"align" processing.
+ *
+ * @see SCALE_EXTENT_CONSTRUCTION for the full processing flow.
+ */
+export function adoptScaleExtentKindMapping(
+    axis: Axis,
+    scale: Scale,
+    rawExtentResult: ScaleRawExtentResultFinal,
+    ecModel: GlobalModel
+): void {
+
+    if (!rawExtentResult.ctnShp) {
         return;
     }
 
-    // `NullUndefined` indicates that `linearSupplement` is not introduced.
     let linearSupplement: number[] | NullUndefined;
-    let containShapeRequired = false;
-
     eachKeyOnAxis(axis, function (axisStatKey) {
         const handler = axisContainShapeHandlerMap.get(axisStatKey);
         if (handler) {
-            containShapeRequired = true;
-            const singleLinearSupplement = handler(axis, scale, ecModel);
+            // This feature can be implemented by either expanding axis extent or scale extent. The choice depends
+            // on whether series shape sizes are defined in pixels or data space. For example, scatter series glyph
+            // sizes is mainly defined in pixel, while bar series `bandWidth` is mainly determined by given percents
+            // of data scale. Since currently scatter does not require this feature, we implement it only on the
+            // data scale.
+            const singleLinearSupplement = handler(axis, ecModel);
             if (singleLinearSupplement) {
                 linearSupplement = linearSupplement || [0, 0];
                 unionExtentStartFromNumber(linearSupplement, singleLinearSupplement[0]);
@@ -843,44 +788,48 @@ function calcContainShape(
         }
     });
 
-    rawExtentInfo.setContainShape({
-        ctnShp: containShapeRequired,
-        liSupp: linearSupplement,
-    });
-}
+    if (!linearSupplement) {
+        return;
+    }
 
-export function adoptScaleExtentKindMapping(
-    axis: Axis,
-    scale: Scale,
-    rawExtentResult: ScaleRawExtentResultFinal,
-): void {
     const scaleExtent = scale.getExtent();
 
-    if (isOrdinalScale(scale) && !axis.onBand) {
-        const linearSupplement = rawExtentResult.liSupp;
-        if (linearSupplement) {
+    if (isOrdinalScale(scale)) {
+        if (!axis.onBand) {
             // - Zooming on `OrdinalScale` auto "snaps" to integer ticks, which causes edge shapes to
-            //   be clipped at the boundaries. Therefore we always supplement it with half bandWith to
-            //   avoid that clipping.
+            //   always overlap and be clipped at the boundaries. Therefore we always supplement it with
+            //   half bandWith to avoid that overlapping.
             // - `linearSupplement` is typically [-0.5, 0.5] in this case. `linearSupplement` exists only
             //   if any series call `registerAxisContainShapeHandler`.
             // - PENDING: For historical reason, `onBand: true` has another implementation to handle
             //   this case. Merge them to this?
-            const scaleExtentExpanded = [
+            scale.setExtent2(
+                SCALE_EXTENT_KIND_MAPPING,
                 mathMin(scaleExtent[0], scaleExtent[0] + linearSupplement[0]),
                 mathMax(scaleExtent[1], scaleExtent[1] + linearSupplement[1])
-            ];
-            scale.setExtent2(SCALE_EXTENT_KIND_MAPPING, scaleExtentExpanded[0], scaleExtentExpanded[1]);
+            );
         }
     }
     else {
-        // For other cases, `SCALE_EXTENT_KIND_MAPPING` is only used on the full extent before `dataZoom`
-        // applied, i.e., `noZoomEffMM + liSupp` (see `makeNoZoomMappingMM`). This visual result is the
-        // most intuitive: when dataZoom is applied and its ends (i.e., `zoomMM`) do not reach the portion
-        // of `liSupp`, the axis ends should exactly respect to the dataZoom ends, and shapes are clipped
-        // if overflowing.
+        // For other cases, `SCALE_EXTENT_KIND_MAPPING` is only used on the full window of `dataZoom`,
+        // where the visual result is more intuitive when zooming: when dataZoom is applied and its ends
+        // (i.e., `zoomMM`) do not reach 0% or 100%, the axis ends should exactly respect to the dataZoom
+        // ends, and shapes are clipped if overflowing.
         const scaleExtentExpanded = scaleExtent.slice();
-        unionExtentFromExtent(scaleExtentExpanded, rawExtentResult.mapMM);
+
+        if (!rawExtentResult.zoomFixMM[0]) {
+            scaleExtentExpanded[0] = mathMin(
+                scaleExtentExpanded[0],
+                scale.transformOut(scale.transformIn(scaleExtentExpanded[0], null) + linearSupplement[0], null)
+            );
+        }
+        if (!rawExtentResult.zoomFixMM[1]) {
+            scaleExtentExpanded[1] = mathMax(
+                scaleExtentExpanded[1],
+                scale.transformOut(scale.transformIn(scaleExtentExpanded[1], null) + linearSupplement[1], null)
+            );
+        }
+
         if (scaleExtentExpanded[0] < scaleExtent[0] || scaleExtentExpanded[1] > scaleExtent[1]) {
             scale.setExtent2(SCALE_EXTENT_KIND_MAPPING, scaleExtentExpanded[0], scaleExtentExpanded[1]);
         }

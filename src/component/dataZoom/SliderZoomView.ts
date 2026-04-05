@@ -22,7 +22,7 @@ import * as eventTool from 'zrender/src/core/event';
 import * as graphic from '../../util/graphic';
 import * as throttle from '../../util/throttle';
 import DataZoomView from './DataZoomView';
-import { linearMap, asc, parsePercent, round, mathMax, mathMin } from '../../util/number';
+import { linearMap, asc, parsePercent, round } from '../../util/number';
 import * as layout from '../../util/layout';
 import sliderMove from '../helper/sliderMove';
 import GlobalModel from '../../model/Global';
@@ -1143,10 +1143,7 @@ function formatLabel(
     // Do not display values out of `SCALE_EXTENT_KIND_EFFECTIVE` - generally they are meaningless.
     // For example, `scaleExtent[0]` is often `0`, and negative values are unlikely to be meaningful.
     // That is, "nice" expansion and `SCALE_EXTENT_KIND_MAPPING` expansion are always not display in labels.
-    const value = (extentIdx ? mathMin : mathMax)(
-        window.value[extentIdx],
-        window.noZoomEffMM[extentIdx],
-    );
+    const value = window.value[extentIdx];
 
     const valueStr = (value == null || isNaN(value))
         ? ''

@@ -48,7 +48,7 @@ export function requireAxisStatisticsForBaseBar(
 
 // See cases in `test/bar-start.html` and `#7412`, `#8747`.
 export function getStartValue(baseAxis: Axis): number {
-    const val = baseAxis.scale.rawExtentInfo.makeOthers().startValue;
+    const val = baseAxis.scale.rawExtentInfo.makeRenderInfo().startValue;
     if (__DEV__) {
         assert(isNullableNumberFinite(val));
     }

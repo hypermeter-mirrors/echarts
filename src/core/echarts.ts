@@ -208,7 +208,7 @@ export const PRIORITY = {
 };
 
 /**
- * [ec updating/rendering cycles (EC_CYCLE)]:
+ * @tutorial [EC_CYCLE] (ec updating/rendering cycles):
  *
  *  - [EC_MAIN_CYCLE]:
  *    - It designates a run of a series of processing/updating/rendering.

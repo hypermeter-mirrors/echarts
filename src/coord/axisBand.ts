@@ -17,10 +17,9 @@
 * under the License.
 */
 
-import { assert, each } from 'zrender/src/core/util';
+import { assert, each, retrieve2 } from 'zrender/src/core/util';
 import { NullUndefined } from '../util/types';
 import type Axis from './Axis';
-import type Scale from '../scale/Scale';
 import { isOrdinalScale } from '../scale/helper';
 import { isNullableNumberFinite, mathAbs, mathMax } from '../util/number';
 import {
@@ -34,15 +33,15 @@ import type SeriesModel from '../model/Series';
 const FALLBACK_BAND_WIDTH_RATIO = 0.8;
 
 export type AxisBandWidthResult = {
-    // The result `bandWidth`. In pixel.
+    // bandWidth in pixel.
     // Never be null/undefined.
-    // May be NaN if no meaningfull `bandWidth`. But it's unlikely to be NaN, since edge cases
+    // May be NaN if no meaningfull value. But it's unlikely to be NaN, since edge cases
     // are handled internally whenever possible.
     w: number;
-    // This is a ratio from pixel span to data span.
-    // Note that the conversion can not be performed if it is not valid, typically when only
-    // one or no series data item exists on the axis.
-    invRatio?: number | NullUndefined;
+    // bandWidth in data space.
+    // Never be null/undefined.
+    // May be NaN if no meaningfull value, typically when no valid series data item.
+    w2: number;
 };
 
 /**
@@ -86,16 +85,36 @@ export function calcBandWidth(
     opt?: CalculateBandWidthOpt | NullUndefined
 ): AxisBandWidthResult {
     opt = opt || {};
-    const out: AxisBandWidthResult = {w: NaN};
+    const out: AxisBandWidthResult = {w: NaN, w2: NaN};
     const scale = axis.scale;
     const fromStat = opt.fromStat;
     const min = opt.min;
 
+    // [BAND_WIDTH_USED_SCALE_LINEAR_SPAN]
+    //  - Band width should always respect to the currently specified extent, and `SCALE_EXTENT_KIND_MAPPING`
+    //    should be used if specified.
+    //    Otherwise, the result may incorrect, especially when data count is small.
+    //    For example, when "containShape" is calculating, no `SCALE_EXTENT_KIND_MAPPING` is set, so here only
+    //    `SCALE_EXTENT_KIND_EFFECTIVE` is returned, say, `[3, 5]`, based on which a `SCALE_EXTENT_KIND_MAPPING`
+    //    is calculated, say `[2.5, 5.5]` (expanded by `0.5`). Then when rendering, that `SCALE_EXTENT_KIND_MAPPING`
+    //    is returned here.
+    //    See AXIS_CONTAIN_SHAPE_COMMON_STRATEGY for more details.
+    //  - The span should be in the linear space (typically, the innermost space).
+    //  - We use the scale extent after being zoommed and `intervalScaleEnsureValidExtent`-ish applied and
+    //    "nice"/"align" applied, because:
+    //    - For OrdinalScale, fine;
+    //    - For numeric scale, `scaleLinearSpan` is normally not used for a consistent result when `dataZoom`
+    //      is applied, but used when none or single data item case.
+    const scaleLinearSpan = getScaleLinearSpanForMapping(scale);
+    const axisExtent = axis.getExtent();
+    // Always use a new pxSpan because it may be changed in `grid` contain label calculation.
+    const pxSpan = mathAbs(axisExtent[1] - axisExtent[0]);
+
     if (isOrdinalScale(scale)) {
-        calcBandWidthForCategoryAxis(out, axis, scale);
+        calcBandWidthForCategoryAxis(out, axis, scaleLinearSpan, pxSpan);
     }
     else if (fromStat) {
-        calcBandWidthForNumericAxis(out, axis, scale, fromStat);
+        calcBandWidthForNumericAxis(out, axis, scaleLinearSpan, pxSpan, fromStat);
     }
     else if (min == null) {
         if (__DEV__) {
@@ -111,51 +130,35 @@ export function calcBandWidth(
     return out;
 }
 
-/**
- * Only reasonable on 'category'.
- *
- * It can be used as a fallback, as it does not produce a significant negative impact
- * on non-category axes.
- *
- * @see CalculateBandWidthOpt
- */
 function calcBandWidthForCategoryAxis(
     out: AxisBandWidthResult,
     axis: Axis,
-    scale: Scale
+    scaleLinearSpan: number,
+    pxSpan: number,
 ): void {
-    const axisExtent = axis.getExtent();
-    const pxSpan = mathAbs(axisExtent[1] - axisExtent[0]);
-    // See the reason on BAND_WIDTH_USED_LINEAR_SCALE_SPAN.
-    const linearScaleSpan = getScaleLinearSpanForMapping(scale);
     const onBand = axis.onBand;
 
-    let len = linearScaleSpan + (onBand ? 1 : 0);
+    let len = scaleLinearSpan + (onBand ? 1 : 0);
     // Fix #2728, avoid NaN when only one data.
     len === 0 && (len = 1);
 
     out.w = pxSpan / len;
     // NOTE:
-    //  - When `linearScaleSpan === 0`, no need to expand extent.
+    //  - When `scaleLinearSpan === 0`, no need to expand extent.
     //  - `onBand: true` (`boundaryGap: true`) does not need to support `containShape`,
     //    thereby no `invRatio`.
-    if (!onBand && linearScaleSpan && pxSpan) {
-        out.invRatio = linearScaleSpan / pxSpan;
+    if (!onBand && scaleLinearSpan && pxSpan) {
+        out.w2 = out.w * scaleLinearSpan / pxSpan;
     }
 }
 
-/**
- * @see CalculateBandWidthOpt
- */
 function calcBandWidthForNumericAxis(
     out: AxisBandWidthResult,
     axis: Axis,
-    scale: Scale,
+    scaleLinearSpan: number,
+    pxSpan: number,
     fromStat: CalculateBandWidthOpt['fromStat'],
 ): void {
-
-    let bandWidth = NaN;
-    let invRatio: number | NullUndefined;
 
     if (__DEV__) {
         assert(fromStat);
@@ -184,36 +187,16 @@ function calcBandWidthForNumericAxis(
         }
     );
 
-    const axisExtent = axis.getExtent();
-    // Always use a new pxSpan because it may be changed in `grid` contain label calculation.
-    const pxSpan = mathAbs(axisExtent[1] - axisExtent[0]);
-
-    // [BAND_WIDTH_USED_LINEAR_SCALE_SPAN]
-    // Here we deliberately use `getScaleLinearSpanForMapping` rather than `scale.getExtent()`,
-    // because band width should always respect to the currently specified extent (e.g., specified by
-    // `calcContainShape`). Otherwise, the result may incorrect, especially when data count is small.
-    // For example, when "containShape" is calculating, no `SCALE_EXTENT_KIND_MAPPING` is set, so here only
-    // `SCALE_EXTENT_KIND_EFFECTIVE` is returned, say, `[3, 5]`, based on which a `SCALE_EXTENT_KIND_MAPPING`
-    // is calculated, say `[2.5, 5.5]` (expanded by `0.5`). Then when rendering, that `SCALE_EXTENT_KIND_MAPPING`
-    // is returned here.
-    // See AXIS_CONTAIN_SHAPE_COMMON_STRATEGY for more details.
-    const linearScaleSpan = getScaleLinearSpanForMapping(scale);
-
-    // `linearScaleSpan` may be `0` or `Infinity` or `NaN`, since normalizers like
+    // `scaleLinearSpan` may be `0` or `Infinity` or `NaN`, since normalizers like
     // `intervalScaleEnsureValidExtent` may not have been called yet.
-    if (isNullableNumberFinite(linearScaleSpan) && linearScaleSpan > 0
+    if (isNullableNumberFinite(scaleLinearSpan) && scaleLinearSpan > 0
         && isNullableNumberFinite(bandWidthInData)
     ) {
-        // NOTE: even when the `bandWidth` is far smaller than `1`, we should still preserve the
-        // precision, because it is required to convert back to data space by `invRatio` for
-        // displaying of zoomed ticks and band.
-        bandWidth = pxSpan / linearScaleSpan * bandWidthInData;
-        invRatio = linearScaleSpan / pxSpan;
+        out.w = pxSpan / scaleLinearSpan * bandWidthInData;
+        out.w2 = bandWidthInData;
     }
     else if (allSingularOrNone) {
-        bandWidth = pxSpan * FALLBACK_BAND_WIDTH_RATIO;
+        out.w = pxSpan * FALLBACK_BAND_WIDTH_RATIO;
+        out.w2 = out.w * scaleLinearSpan / pxSpan;
     }
-
-    out.w = bandWidth;
-    out.invRatio = invRatio;
 }

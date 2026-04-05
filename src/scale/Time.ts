@@ -438,7 +438,8 @@ function getMinutesAndSecondsInterval(approxInterval: number, isMinutes?: boolea
 }
 
 function getMillisecondsInterval(approxInterval: number) {
-    return numberUtil.nice(approxInterval, true);
+    // If less than 1, the getTicks loop will inevitably deed loop and read safeLimit.
+    return numberUtil.mathMax(numberUtil.nice(approxInterval, true), 1);
 }
 
 // e.g., if the input unit is 'day', start calculate ticks from the first day of
@@ -476,7 +477,9 @@ function createIntervalTicks(
     innermostSpan: number,
     brk: BreakScaleMapper | NullUndefined,
 ): TimeScaleTick[] {
-    const safeLimit = 10000;
+    // A fail-safe is required since `interval` can be user specified, or for the case
+    // that using dataZoom toolbox and zoom repeatedly.
+    const safeLimit = 3000;
     const unitNames = timeUnits;
     // const bottomPrimaryUnitName = getPrimaryTimeUnit(bottomUnitName);
 
@@ -512,7 +515,7 @@ function createIntervalTicks(
 
             if (iter++ > safeLimit) {
                 if (__DEV__) {
-                    warn('Exceed safe limit in time scale.');
+                    warn('Exceed safe limit in TimeScale["getTicks"].');
                 }
                 break;
             }
