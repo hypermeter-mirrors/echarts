@@ -376,10 +376,7 @@ class LinesSeriesModel extends SeriesModel<LinesSeriesOption> {
     getZLevelKey() {
         const effectModel = this.getModel('effect');
         const trailLength = effectModel.get('trailLength');
-        return this.getData().count() > this.getProgressiveThreshold()
-            // Each progressive series has individual key.
-            ? this.id
-            : (effectModel.get('show') && trailLength > 0 ? trailLength + '' : '');
+        return effectModel.get('show') && trailLength > 0 ? trailLength + '' : '';
     }
 
     static defaultOption: LinesSeriesOption = {

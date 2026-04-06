@@ -319,7 +319,9 @@ class ComponentModel<Opt extends ComponentOption = ComponentOption> extends Mode
     /**
      * Get key for zlevel.
      * If developers don't configure zlevel. We will assign zlevel to series based on the key.
-     * For example, lines with trail effect and progressive series will in an individual zlevel.
+     * For example, lines with trail effect will in an individual zlevel.
+     * NOTICE: `el.incremental` does not need to assign an individual zlevel, zrender can handle
+     * it internally.
      */
     getZLevelKey(): string {
         return '';

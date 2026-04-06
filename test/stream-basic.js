@@ -50,8 +50,9 @@
     function initContainer() {
         _recordContainer.innerHTML = [
             '<div class="print-incremental-record-title">',
-                'In the "incremental layer", each frame: ',
-                'canvas instruction count (<span class="print-incremental-cmd-count">red number</span>) should be the same:',
+                'In "incremental layers" (layer N.01), ',
+                'canvas instruction count (<span class="print-incremental-cmd-count">red number</span>) should be the same per frame;',
+                '<br>In "normal layers" (layer N or layer N.2), should be no incremental canvas instructions per frame.',
             '</div>'
         ].join('');
         _recordContainer.className = 'print-incremental-record';

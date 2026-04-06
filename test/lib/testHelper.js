@@ -1820,16 +1820,25 @@
                 };
             }
             else {
-                return {
+                var input = {
                     type: 'select',
                     text: _ctx[key].text || (key + ':'),
-                    value: _ctx[key].value,
-                    values: _ctx[key].values,
                     onchange: function () {
                         _ctx[key].value = this.value;
                         updateChart();
                     }
                 };
+                function assignIfExisting(prop) {
+                    if (_ctx[key].hasOwnProperty(prop)) {
+                        input[prop] = _ctx[key][prop];
+                    }
+                }
+                assignIfExisting('value');
+                assignIfExisting('valueIndex');
+                assignIfExisting('optionIndex');
+                assignIfExisting('values');
+                assignIfExisting('options');
+                return input;
             }
         }
         return inputs;
@@ -2021,7 +2030,7 @@
         var _mask = null;
 
         function getRunBtnText() {
-            return _running ? 'pause' : 'run';
+            return _running ? 'Pause' : 'Resume';
         }
 
         var buttons = [{
@@ -2031,7 +2040,7 @@
                 _running ? pause() : run();
             }
         }, {
-            text: 'next frame',
+            text: 'Next Frame',
             onclick: nextFrame
         }];
 
