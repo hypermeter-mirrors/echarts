@@ -3181,7 +3181,7 @@ function registerLayout(
     priority: number | StageHandler | StageHandlerOverallReset,
     layoutTask?: StageHandler | StageHandlerOverallReset
 ): void {
-    normalizeRegister(visualFuncs, priority, layoutTask, PRIORITY_VISUAL_LAYOUT, 'layout');
+    normalizeRegister(visualFuncs, priority, layoutTask, PRIORITY_VISUAL_LAYOUT, 'layout', true);
 }
 
 function registerVisual(priority: number, layoutTask: StageHandler | StageHandlerOverallReset): void;
@@ -3190,7 +3190,7 @@ function registerVisual(
     priority: number | StageHandler | StageHandlerOverallReset,
     visualTask?: StageHandler | StageHandlerOverallReset
 ): void {
-    normalizeRegister(visualFuncs, priority, visualTask, PRIORITY_VISUAL_CHART, 'visual');
+    normalizeRegister(visualFuncs, priority, visualTask, PRIORITY_VISUAL_CHART, 'visual', true);
 }
 
 export {registerLayout, registerVisual};
@@ -3202,7 +3202,8 @@ function normalizeRegister(
     priority: number | StageHandler | StageHandlerOverallReset,
     fn: StageHandler | StageHandlerOverallReset,
     defaultPriority: number,
-    visualType?: StageHandlerInternal['visualType']
+    visualType?: StageHandlerInternal['visualType'],
+    checkBlock?: boolean
 ): void {
     if (isFunction(priority) || isObject(priority)) {
         fn = priority as (StageHandler | StageHandlerOverallReset);
@@ -3230,6 +3231,16 @@ function normalizeRegister(
     stageHandler.__prio = priority;
     stageHandler.__raw = fn;
     targetList.push(stageHandler);
+
+    if (__DEV__) {
+        if (checkBlock) {
+            assert(
+                !stageHandler.dirtyOnOverallProgress,
+                `dirtyOnOverallProgress is not allowed in ${visualType} stage;`
+                + ' otherwise progressive rendering is disabled on all series.'
+            );
+        }
+    }
 }
 
 export function registerLoading(

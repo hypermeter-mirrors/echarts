@@ -50,9 +50,9 @@
     function initContainer() {
         _recordContainer.innerHTML = [
             '<div class="print-incremental-record-title">',
-                'In "incremental layers" (layer N.01), ',
+                'In "incremental layers" (layer N|1), ',
                 'canvas instruction count (<span class="print-incremental-cmd-count">red number</span>) should be the same per frame;',
-                '<br>In "normal layers" (layer N or layer N.2), should be no incremental canvas instructions per frame.',
+                '<br>In "normal layers" (layer N|0 or N|2), should be no incremental canvas instructions per frame.',
             '</div>'
         ].join('');
         _recordContainer.className = 'print-incremental-record';
@@ -66,8 +66,7 @@
                 recordLineTitle: document.createElement('div'),
                 recordLineContainer: document.createElement('div')
             };
-            var incrementalText = layer.incremental ? ' (incremental)' : '';
-            layerInfo.recordLineTitle.innerHTML = 'layer ' + zlevel + incrementalText + ': <br>';
+            layerInfo.recordLineTitle.innerHTML = 'layer ' + zlevel + ': <br>';
             layerInfo.recordLineTitle.className = 'print-incremental-record-line-title';
             layerInfo.recordLineContainer.className = 'print-incremental-record-line';
             _recordContainer.appendChild(layerInfo.recordLineTitle);

@@ -54,24 +54,42 @@ under the License.
 
             const _ctx = {
                 dataKind: {
-                    valueIndex: 1,
+                    valueIndex: 0,
                     values: [
-                        {count: 35663, lngCount: 1000},
                         {count: 100, lngCount: 10},
+                        {count: 200, lngCount: 10},
+                        {count: 35663, lngCount: 1000},
                     ]
                 },
                 br1: {},
                 largeSettings: {
                     valueIndex: 0,
                     values: [{
+                        large: true,
                         progressive: 1,
                         largeThreshold: 1,
                         progressiveThreshold: 1,
                     }, {
+                        large: true,
                         progressive: 100,
                         largeThreshold: 100,
                         progressiveThreshold: 101
+                    }, {
+                        large: false,
+                        progressive: 0,
+                        largeThreshold: 1e8,
+                        progressiveThreshold: 1e8
                     }]
+                },
+                br2: {},
+                blendMode: {
+                    value: 'NOT_SET',
+                    values: ['NOT_SET', 'lighter']
+                },
+                symbolSize: {
+                    text: 'symbolSize (all rect if < 4):',
+                    value: 20,
+                    values: [20, 3]
                 }
             };
 
@@ -83,19 +101,14 @@ under the License.
 
                 var points = [];
 
-                var _largeSettings = {
-                    large: true,
-                    // large: false,
-
-                    ..._ctx.largeSettings.values[_ctx.largeSettings.valueIndex],
-                };
+                var _largeSettings = _ctx.largeSettings.values[_ctx.largeSettings.valueIndex];
 
                 var lng0 = -160;
                 var lng1 = lng0 + 300;
-                var lat0 = 0;
-                var lat1 = lat0 + 35
-                var lngStep = (lng1 - lng0) / lngCount;
-                var latStep = (lat1 - lat0) / (count / lngCount);
+                var lat0 = -20;
+                var lat1 = lat0 + 50
+                var lngStep = (lng1 - lng0) / (lngCount - 1);
+                var latStep = (lat1 - lat0) / ((count / lngCount) - 1);
 
                 for (var i = 0; i < count; i++) {
                     var iLng = i % lngCount;
@@ -127,25 +140,29 @@ under the License.
                         roam: true,
                         silent: true,
                         itemStyle: {
-                            normal: {
-                                borderColor: '#003',
-                                color: '#005'
-                            }
+                            borderColor: '#003',
+                            color: '#005'
                         }
                     },
                     series: [{
                         type: 'scatter',
                         coordinateSystem: 'geo',
-                        blendModel: 'lighter',
+                        blendMode: 'lighter',
                         data: points,
-                        symbol: 'rect',
-                        symbolSize: 10,
+                        symbol: 'circle',
+                        symbolSize: _ctx.symbolSize.value,
+                        itemStyle: {
+                            borderColor: '#333',
+                            borderWidth: 1,
+                        },
                         ..._largeSettings,
                     }, {
                         type: 'scatter',
                         coordinateSystem: 'geo',
                         symbolSize: 5,
-                        color: ['green'],
+                        color: ['orange'],
+                        itemStyle: {opacity: 1},
+                        z: 100,
                         data: [
                             {
                                 value: [lng0, lat0],
@@ -179,6 +196,11 @@ under the License.
                         ]
                     }]
                 };
+
+                if (_ctx.blendMode.value === 'NOT_SET') {
+                    option.series[0].blendMode = _ctx.blendMode.value;
+                }
+
                 return option;
             }
 

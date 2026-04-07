@@ -266,7 +266,7 @@ class Scheduler {
 
             let errMsg = '';
             if (__DEV__) {
-                // Currently do not need to support to sepecify them both.
+                // Currently do not need to support to specify them both.
                 errMsg = '"reset" and "overallReset" must not be both specified.';
             }
             assert(!(handler.reset && handler.overallReset), errMsg);

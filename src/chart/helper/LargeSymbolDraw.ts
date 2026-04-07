@@ -32,6 +32,7 @@ import { CoordinateSystemClipArea } from '../../coord/CoordinateSystem';
 import { getECData } from '../../util/innerStore';
 import Element from 'zrender/src/Element';
 import Displayable, { BeforeBrushParam } from 'zrender/src/graphic/Displayable';
+import { validateUpstreamOutputRange } from '../../util/model';
 
 const BOOST_SIZE_THRESHOLD = 4;
 
@@ -292,6 +293,11 @@ class LargeSymbolDraw {
         const lastAdded = this._newAdded[0];
         const points = data.getLayout('points');
         const oldPoints = lastAdded && lastAdded.shape.points;
+
+        if (__DEV__) {
+            validateUpstreamOutputRange(data.getLayout('pointsRange'), taskParams);
+        }
+
         // Merging the exists. Each element has 1e4 points.
         // Consider the performance balance between too much elements and too much points in one shape(may affect hover optimization)
         if (oldPoints && oldPoints.length < 2e4) {
@@ -305,7 +311,6 @@ class LargeSymbolDraw {
             lastAdded.setShape({ points: newPoints });
         }
         else {
-            // Clear
             this._newAdded = [];
 
             const symbolEl = this._create();

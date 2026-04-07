@@ -62,6 +62,7 @@ import type Model from '../model/Model';
 import type Displayable from 'zrender/src/graphic/Displayable';
 import type ChartView from '../view/Chart';
 import type { Pipeline, PipelineContext } from '../core/Scheduler';
+import { TaskProgressParams } from '../core/task';
 
 function interpolateNumber(p0: number, p1: number, percent: number): number {
     return (p1 - p0) * percent + p0;
@@ -1372,4 +1373,25 @@ export function preparePipelineContext(
         modDataCount: seriesModel.get('progressiveChunkMode') === 'mod'
             ? seriesModel.getData().count() : null,
     };
+}
+
+/**
+ * When some task "blocks" the upstream part of the pipeline, the upstream output (typically, a TypedArray
+ * to carry layout points, e.g., `data.getLayout('points')`) range is from the start to the final end.
+ * A downstream comsumer should either properly record cursors when reading from the upstream output,
+ * or fail fast on that usage.
+ * Otherwise, take the `data.getLayout('points')` as an example, repeatedly merging it with the existing
+ * shape path can create a big path, which degrades performance but is hard to detect.
+ *
+ * This method provides an assertion for that.
+ */
+export function validateUpstreamOutputRange(
+    // null/undefined is not allowed, otherwise bug-prone.
+    upstreamOutputRange: Pick<TaskProgressParams, 'start' | 'end'>,
+    thisTaskPlannedRange: Pick<TaskProgressParams, 'start' | 'end'>
+): void {
+    assert(
+        upstreamOutputRange.start === thisTaskPlannedRange.start
+        && upstreamOutputRange.end === thisTaskPlannedRange.end
+    );
 }

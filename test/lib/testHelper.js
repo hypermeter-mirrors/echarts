@@ -1824,7 +1824,31 @@
                     type: 'select',
                     text: _ctx[key].text || (key + ':'),
                     onchange: function () {
-                        _ctx[key].value = this.value;
+                        var newValue = this.value;
+                        if (_ctx[key].hasOwnProperty('valueIndex')) {
+                            _ctx[key].valueIndex = findValueIndex();
+                        }
+                        else if (_ctx[key].hasOwnProperty('optionIndex')) {
+                            _ctx[key].optionIndex = findValueIndex();
+                        }
+                        else {
+                            _ctx[key].value = newValue;
+                        }
+
+                        function findValueIndex() {
+                            if (_ctx[key].values) {
+                                return arrayIndexOf(_ctx[key].values, newValue);
+                            }
+                            else if (_ctx[key].options) {
+                                for (var i = 0; i < _ctx[key].options.length; i++) {
+                                    if (_ctx[key].options[i].value === newValue) {
+                                        return i;
+                                    }
+                                }
+                                return -1;
+                            }
+                        }
+
                         updateChart();
                     }
                 };

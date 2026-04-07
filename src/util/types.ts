@@ -371,22 +371,25 @@ export interface StageHandler {
 
     /**
      * If `overallReset` is specified, an OVERALL_STAGE_TASK will be created.
-     * An OVERALL_STAGE_TASK resides across multiple pipelines, and is associated with
-     * pipelines by "stub"s, which deliver messages like "dirty" and "output end".
-     * OVERALL_STAGE_TASK does not support `progess` method.
+     *
+     * @tutorial [OVERALL_STAGE_TASK]
+     *  An OVERALL_STAGE_TASK resides across multiple pipelines, and is associated with
+     *  pipelines by "stub"s, which deliver messages like "dirty" and "output end".
+     *  OVERALL_STAGE_TASK does not support `progess` method.
      *
      * The `overallReset` method is called iff this task is "dirty" (See `Task['dirty']`).
-     * See `StageHandler['reset']` for a summary of possible `dirty()` calls.
+     * See EC_TASK_DIRTY for a summary of possible `dirty()` calls.
      */
     overallReset?: StageHandlerOverallReset;
 
     /**
      * If `reset` is specified, a SERIES_STAGE_TASK will be created.
-     * A SERIES_STAGE_TASK is owned by a pipeline and is specific to a single series.
+     *
+     * @tutorial [SERIES_STAGE_TASK]
+     *  A SERIES_STAGE_TASK is owned by a pipeline and is specific to a single series.
      *
      * The `reset` method is called iff this task is "dirty" (See `Task['dirty']`).
-     * Task `dirty()` call typically originates from a trigger of EC_MAIN_CYCLE (including
-     * EC_FULL_UPDATE and EC_PARTIAL_UPDATE) (See comments in EC_CYCLE)
+     * See EC_TASK_DIRTY for a summary of possible `dirty()` calls.
      *
      * NOTICE: `dirtyOnOverallProgress: true` cause that the corresponding `overallReset`
      *  and `reset` of downsteams tasks may also be called in EC_PROGRESSIVE_CYCLE.
@@ -397,15 +400,16 @@ export interface StageHandler {
     reset?: StageHandlerReset;
 
     /**
-     * This is a temporary mechanism for dataZoom case in `appendData`.
+     * This is a temporary mechanism primarily for a dataZoom case in `appendData`.
      *
-     * It will set the OVERALL_STAGE_TASK dirty when the pipeline progress.
-     * Moreover, to avoid call the OVERALL_STAGE_TASK each frame (too frequent),
-     * it set the pipeline block (via `task.__block`) in this stage.
+     * Ordinarily, `overallReset` is not called in progress in the subsequent frames,
+     * but `dirtyOnOverallProgress: true` allows all pipelines to be blocked until
+     * this stage, thereby no `overallReset` call being omitted.
+     * (See PerformStageTaskOpt['block'] for its meaning.)
      *
-     * Otherwise, (usually it is legacy case), the OVERALL_STAGE_TASK will only be
-     * executed when upstream is dirty. Otherwise the progressive rendering of all
-     * pipelines will be disabled unexpectedly.
+     * NOTE_IMPL: It will set this OVERALL_STAGE_TASK dirty when the pipeline progress.
+     * Moreover, to avoid calling the OVERALL_STAGE_TASK each frame (too frequent),
+     * it block the pipeline until this stage (via `task.__block`).
      */
     dirtyOnOverallProgress?: boolean;
 }

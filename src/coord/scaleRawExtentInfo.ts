@@ -442,10 +442,12 @@ function parseBoundaryGapOption(
         let boundaryGap = (model as AxisBaseModel<NumericAxisBaseOptionCommon>).get('boundaryGap');
         if (typeof boundaryGap === 'boolean') {
             if (__DEV__) {
-                console.warn('Boolean type for boundaryGap is only '
-                    + 'allowed for ordinal axis. Please use string in '
-                    + 'percentage instead, e.g., "20%". Currently, '
-                    + 'boundaryGap is set to be 0.');
+                if (boundaryGap === true) {
+                    console.warn('Boolean type for boundaryGap is only '
+                        + 'allowed for ordinal axis. Please use string in '
+                        + 'percentage instead, e.g., "20%". Currently, '
+                        + 'boundaryGap is set to 0.');
+                }
             }
             boundaryGap = null;
         }

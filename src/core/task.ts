@@ -243,12 +243,12 @@ export class Task<Ctx extends TaskContext> {
     }
 
     /**
-     * Generally, task dirty propagates to downstream tasks.
-     * Task dirty leads to the `reset` call, which discards the previous result and starts over
-     * the processing.
-     *
-     * See `StageHandler['reset']` and `StageHandler['overallReset']` for a summary of possible
-     * `dirty()` calls.
+     * @tutorial [EC_TASK_DIRTY]
+     *  Task `dirty()` calls typically originate from a trigger of EC_MAIN_CYCLE (including
+     *  EC_FULL_UPDATE and EC_PARTIAL_UPDATE) (See comments in EC_CYCLE)
+     *  Generally, task dirty propagates to downstream tasks.
+     *  Task dirty leads to the `StageHandler['reset']` or `StageHandler['overallReset']` call,
+     *  which discards the previous result and starts over the processing.
      */
     dirty(): void {
         this._dirty = true;

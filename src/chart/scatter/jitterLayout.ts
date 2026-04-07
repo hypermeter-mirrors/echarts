@@ -25,6 +25,7 @@ import type { StageHandler } from '../../util/types';
 import createRenderPlanner from '../helper/createRenderPlanner';
 import { COORD_SYS_TYPE_CARTESIAN_2D } from '../../coord/cartesian/GridModel';
 import { COORD_SYS_TYPE_SINGLE } from '../../coord/single/AxisModel';
+import { validateUpstreamOutputRange } from '../../util/model';
 
 export default function jitterLayout(): StageHandler {
     return {
@@ -61,6 +62,10 @@ export default function jitterLayout(): StageHandler {
                 progress(params, data): void {
                     const points = data.getLayout('points') as Float32Array;
                     const hasPoints = !!points;
+
+                    if (__DEV__) {
+                        hasPoints && validateUpstreamOutputRange(data.getLayout('pointsRange'), params);
+                    }
 
                     for (let i = params.start; i < params.end; i++) {
                         const offset = hasPoints ? (i - params.start) * 2 : -1;
