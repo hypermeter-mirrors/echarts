@@ -17,13 +17,14 @@
 * under the License.
 */
 
-import { assert, each, retrieve2 } from 'zrender/src/core/util';
+import { assert, each } from 'zrender/src/core/util';
 import { NullUndefined } from '../util/types';
 import type Axis from './Axis';
 import { isOrdinalScale } from '../scale/helper';
 import { isNullableNumberFinite, mathAbs, mathMax } from '../util/number';
 import {
     AxisStatKey, getAxisStat, getAxisStatBySeries,
+    LINEAR_POSITIVE_MIN_GAP_SINGLE_VALID_VALUE,
 } from './axisStatistics';
 import { getScaleLinearSpanForMapping } from '../scale/scaleMapper';
 import type SeriesModel from '../model/Series';
@@ -164,7 +165,7 @@ function calcBandWidthForNumericAxis(
         assert(fromStat);
     }
 
-    let allSingularOrNone: boolean | NullUndefined;
+    let onlySingular = false;
     let bandWidthInData = -Infinity;
     each(
         fromStat.key
@@ -172,31 +173,36 @@ function calcBandWidthForNumericAxis(
             : getAxisStatBySeries(axis, fromStat.sers || []),
         function (stat) {
             const liPosMinGap = stat.liPosMinGap;
-            // `liPosMinGap == null` may indicate that `requireAxisStatistics`
-            // is not used by the relevant series. We conservatively do not
-            // consider it as a "singular" case.
-            if (liPosMinGap != null && allSingularOrNone == null) {
-                allSingularOrNone = true;
-            }
-            if (isNullableNumberFinite(liPosMinGap)) {
-                if (liPosMinGap > bandWidthInData) {
-                    bandWidthInData = liPosMinGap;
+            // NOTE: `liPosMinGap == null` may indicate that `requireAxisStatistics`
+            // is not used by any series on this axis. We should not make `bandWidth`
+            // for this case.
+            if (liPosMinGap != null) {
+                if (liPosMinGap > 0) {
+                    if (liPosMinGap > bandWidthInData) {
+                        bandWidthInData = liPosMinGap;
+                    }
+                    onlySingular = false;
                 }
-                allSingularOrNone = false;
+                else if (liPosMinGap === LINEAR_POSITIVE_MIN_GAP_SINGLE_VALID_VALUE) {
+                    onlySingular = true;
+                }
             }
         }
     );
 
-    // `scaleLinearSpan` may be `0` or `Infinity` or `NaN`, since normalizers like
-    // `intervalScaleEnsureValidExtent` may not have been called yet.
     if (isNullableNumberFinite(scaleLinearSpan) && scaleLinearSpan > 0
         && isNullableNumberFinite(bandWidthInData)
     ) {
         out.w = pxSpan / scaleLinearSpan * bandWidthInData;
         out.w2 = bandWidthInData;
     }
-    else if (allSingularOrNone) {
+    else if (onlySingular) {
+        // This is the special handing for single value case, where min gap can not
+        // be calculated, but `w` and `w2` (for "containShape") are still needed.
         out.w = pxSpan * FALLBACK_BAND_WIDTH_RATIO;
         out.w2 = out.w * scaleLinearSpan / pxSpan;
+        // Consider an axis has both candlestick and bar series, where candlestick has multiple data
+        // but the bar series has no data. In this case, that bar series should be ignored; otherwise,
+        // the axis will be significantly expanded by "containShape" but no bar shape displayed.
     }
 }

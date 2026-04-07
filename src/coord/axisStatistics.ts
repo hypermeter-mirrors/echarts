@@ -21,7 +21,7 @@ import { assert, createHashMap, HashMap, retrieve2 } from 'zrender/src/core/util
 import type GlobalModel from '../model/Global';
 import type SeriesModel from '../model/Series';
 import {
-    initExtentForUnion, makeCallOnlyOnce, makeInner,
+    makeCallOnlyOnce, makeInner,
 } from '../util/model';
 import { ComponentSubType, DimensionIndex, NullUndefined } from '../util/types';
 import type Axis from './Axis';
@@ -67,6 +67,7 @@ type AxisStatKeyed = HashMap<AxisStatPerKey | NullUndefined, AxisStatKey>;
 type AxisStatPerKey = HashMap<AxisStatPerKeyPerAxis | NullUndefined, AxisBaseModel['uid']>;
 type AxisStatPerKeyPerAxis = {
     axis: Axis;
+
     // This is series use this axis as base axis and need to be laid out.
     // The order is determined by the client and must be respected.
     // Never be null/undefined.
@@ -74,15 +75,26 @@ type AxisStatPerKeyPerAxis = {
     sers: SeriesModel[];
     // For query. The array index is series index.
     serByIdx: SeriesModel[];
+
     // Minimal positive gap of values (in the linear space) of all relevant series (e.g. per `BaseBarSeriesSubType`)
     // on this axis.
-    // Be `null`/`undefined` if this metric is not calculated.
-    // Be `NaN` if no meaningful gap can be calculated, typically when only one item an no item.
-    liPosMinGap?: number | NullUndefined;
+    liPosMinGap?:
+        // Can only be a positive number rather than zero.
+        number
+        // In this case a positive min gap can not be calculated.
+        | typeof LINEAR_POSITIVE_MIN_GAP_NO_VALID_VALUE
+        // In this case a positive min gap can not be calculated.
+        | typeof LINEAR_POSITIVE_MIN_GAP_SINGLE_VALID_VALUE
+        // Be `null`/`undefined` if this metric is not required.
+        | NullUndefined;
 
     // metrics corresponds to this record.
     metrics?: AxisStatMetrics;
 };
+
+// In this case, there are one or multiple valid data value but all the same.
+export const LINEAR_POSITIVE_MIN_GAP_SINGLE_VALID_VALUE = -2;
+export const LINEAR_POSITIVE_MIN_GAP_NO_VALID_VALUE = -1;
 
 const ecModelCachePrepareInner = makeInner<{
     keyed: AxisStatECPrepareCacheKeyed | NullUndefined;
@@ -123,15 +135,11 @@ export type AxisStatMetrics = {
 
     // NOTICE:
     //  May be time-consuming in large data due to some metrics requiring travel and sort of
-    //  series data, especially when axis break is used, so it is performed only if required,
-    //  and stop calculation if the iteration is over `MIN_GAP_FOR_BAND_CALCULATION_LIMIT`.
+    //  series data, especially when axis break is used, so it is performed only if required.
     liPosMinGap?: boolean
 };
 
-export type AxisStatisticsResult = Pick<
-    AxisStatPerKeyPerAxis,
-    'liPosMinGap'
->;
+export type AxisStatisticsResult = Pick<AxisStatPerKeyPerAxis, 'liPosMinGap'>;
 
 type AxisStatEachSeriesCb = (seriesModel: SeriesModel) => void;
 
@@ -341,7 +349,7 @@ function performStatisticsForRecord(
 
     const axis = perKeyPerAxis.axis;
     const scale = axis.scale;
-    const linearValueExtent = initExtentForUnion();
+    // const linearValueExtent = initExtentForUnion();
     const needTransform = scale.needTransform();
     const filter = scale.getFilter ? scale.getFilter() : null;
     const filterParsed = parseSanitizationFilter(filter);
@@ -409,8 +417,8 @@ function performStatisticsForRecord(
                     val = scale.transformIn(val, null);
                 }
                 tmpValueBuffer.arr[writeIdx++] = val;
-                val < linearValueExtent[0] && (linearValueExtent[0] = val);
-                val > linearValueExtent[1] && (linearValueExtent[1] = val);
+                // val < linearValueExtent[0] && (linearValueExtent[0] = val);
+                // val > linearValueExtent[1] && (linearValueExtent[1] = val);
             }
         }
     });
@@ -439,7 +447,8 @@ function performStatisticsForRecord(
     let min = Infinity;
     for (let j = 1; j < writeIdx; ++j) {
         const delta = tmpValueBufferView[j] - tmpValueBufferView[j - 1];
-        if (// - Different series normally have the same values, which should be ignored.
+        if (// - Different series normally have the same values (e.g., barA, barB, barC),
+            //   which should be ignored.
             // - A single series with multiple same values is often not meaningful to
             //   create `bandWidth`, so it is also ignored.
             delta > 0
@@ -449,9 +458,10 @@ function performStatisticsForRecord(
         }
     }
 
-    ecPreparePerKeyPerAxis.liPosMinGap = perKeyPerAxis.liPosMinGap = isNullableNumberFinite(min)
-        ? min
-        : NaN; // No valid data item or single valid data item.
+    ecPreparePerKeyPerAxis.liPosMinGap = perKeyPerAxis.liPosMinGap =
+        isNullableNumberFinite(min) ? min
+        : writeIdx > 0 ? LINEAR_POSITIVE_MIN_GAP_SINGLE_VALID_VALUE
+        : LINEAR_POSITIVE_MIN_GAP_NO_VALID_VALUE;
     ecPreparePerKeyPerAxis.serUids = newSerUids;
 }
 

@@ -515,10 +515,29 @@ under the License.
             ], function (echarts) {
 
                 var _ctx = {
-                    dataKind: 'normal',
-                    useAdditionalBar: false,
-                    useAdditionalEmptySeries: false,
-                    dataZoomFilterMode: undefined,
+                    dataKind: {
+                        text: 'data:',
+                        value: 'normal',
+                        values: [
+                            'normal', 'single_no_min_max', 'single_with_min_max', 'no_data',
+                            'large_mode', 'progressive_1e5_normal_array', 'progressive_1e6_Float64Array'
+                        ],
+                    },
+                    useAdditionalBar: {
+                        text: 'add bar:',
+                        value: false,
+                        values: [false, true],
+                    },
+                    useAdditionalEmptySeries: {
+                        text: 'add empty series:',
+                        value: false,
+                        values: [false, true],
+                    },
+                    dataZoomFilterMode: {
+                        text: 'dataZoom.filterMode:',
+                        value: undefined,
+                        values: [undefined, 'filter', 'none', 'empty'],
+                    },
                 };
 
                 var _firstItem;
@@ -550,7 +569,7 @@ under the License.
                 });
 
                 function createOption() {
-                    var datasetItem = _dataset[_ctx.dataKind];
+                    var datasetItem = _dataset[_ctx.dataKind.value];
 
                     var option = {
                         legend: {
@@ -558,8 +577,11 @@ under the License.
                         },
                         xAxis: {
                             type: 'time',
-                            min: _ctx.dataKind === 'single_with_min_max' ? kDataRaw[0][0] : undefined,
-                            max: _ctx.dataKind === 'single_with_min_max' ? kDataRaw[kDataRaw.length - 1][0] : undefined,
+                            axisLabel: {
+                                hideOverlap: true
+                            },
+                            min: _ctx.dataKind.value === 'single_with_min_max' ? kDataRaw[0][0] : undefined,
+                            max: _ctx.dataKind.value === 'single_with_min_max' ? kDataRaw[kDataRaw.length - 1][0] : undefined,
                         },
                         yAxis: {
                             scale: true,
@@ -569,10 +591,10 @@ under the License.
                         },
                         dataZoom: [{
                             type: 'inside',
-                            filterMode: _ctx.dataZoomFilterMode
+                            filterMode: _ctx.dataZoomFilterMode.value
                         }, {
                             type: 'slider',
-                            filterMode: _ctx.dataZoomFilterMode
+                            filterMode: _ctx.dataZoomFilterMode.value
                         }],
                         tooltip: {
                             trigger: 'axis',
@@ -617,7 +639,7 @@ under the License.
                         }]
                     };
 
-                    if (_ctx.useAdditionalBar) {
+                    if (_ctx.useAdditionalBar.value) {
                         option.series.push({
                             type: 'bar',
                             name: 'additional_bar',
@@ -628,7 +650,7 @@ under the License.
                             progressiveThreshold: PROGRESSIVE_THRESHOLD,
                         });
                     }
-                    if (_ctx.useAdditionalEmptySeries) {
+                    if (_ctx.useAdditionalEmptySeries.value) {
                         option.series.push({
                             type: 'bar',
                             name: 'additional_empty_series',
@@ -663,42 +685,7 @@ under the License.
                     ],
                     option: initOption,
                     inputsStyle: 'compact',
-                    inputs: [{
-                        type: 'select',
-                        text: 'data:',
-                        values: [
-                            _ctx.dataKind, 'single_no_min_max', 'single_with_min_max', 'no_data',
-                            'large_mode', 'progressive_1e5_normal_array', 'progressive_1e6_Float64Array'
-                        ],
-                        onchange() {
-                            _ctx.dataKind = this.value;
-                            updateChart();
-                        }
-                    }, {
-                        type: 'select',
-                        text: 'add bar:',
-                        values: [_ctx.useAdditionalBar, true],
-                        onchange() {
-                            _ctx.useAdditionalBar = this.value;
-                            updateChart();
-                        }
-                    }, {
-                        type: 'select',
-                        text: 'add empty series:',
-                        values: [_ctx.useAdditionalEmptySeries, true],
-                        onchange() {
-                            _ctx.useAdditionalEmptySeries = this.value;
-                            updateChart();
-                        }
-                    }, {
-                        type: 'select',
-                        text: 'dataZoom.filterMode:',
-                        values: [_ctx.dataZoomFilterMode, 'filter', 'none', 'empty'],
-                        onchange: function () {
-                            _ctx.dataZoomFilterMode = this.value;
-                            updateChart();
-                        }
-                    }]
+                    inputs: testHelper.createInputsSimply(_ctx, updateChart),
                 });
             });
         </script>
