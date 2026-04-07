@@ -272,7 +272,8 @@ class GaugeView extends ChartView {
                 const distance = labelModel.get('distance') + splitLineDistance;
 
                 const label = formatLabel(
-                    round(i / splitNumber * (maxVal - minVal) + minVal, DEFAULT_PRECISION_FOR_ROUNDING_ERROR),
+                    // multiply firstly to avoid rounding error.
+                    round(i * (maxVal - minVal) / splitNumber + minVal, DEFAULT_PRECISION_FOR_ROUNDING_ERROR),
                     labelModel.get('formatter')
                 );
                 const autoColor = getColor(i / splitNumber);
