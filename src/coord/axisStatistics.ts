@@ -17,7 +17,7 @@
 * under the License.
 */
 
-import { assert, createHashMap, HashMap, retrieve2 } from 'zrender/src/core/util';
+import { assert, createHashMap, each, HashMap, retrieve2 } from 'zrender/src/core/util';
 import type GlobalModel from '../model/Global';
 import type SeriesModel from '../model/Series';
 import {
@@ -70,7 +70,7 @@ type AxisStatPerKeyPerAxis = {
 
     // This is series use this axis as base axis and need to be laid out.
     // The order is determined by the client and must be respected.
-    // Never be null/undefined.
+    // Never be null/undefined; Never be length === 0;
     // series filtered out is included.
     sers: SeriesModel[];
     // For query. The array index is series index.
@@ -127,7 +127,12 @@ export type AxisStatKeyedClient = {
 /**
  * Within each individual axis, different groups of relevant series and statistics are
  * designated by a `AxisStatKey`.
- * In most case `seriesType` is used as `AxisStatKey`.
+ *
+ * `AxisStatKey` is a static definition.
+ *  In most case a `seriesType` is used as a `AxisStatKey` (See `makeAxisStatKey`).
+ *  Sometimes a `seriesType`+`coordSysType` is used as a `AxisStatKey` (See `makeAxisStatKey2`).
+ *
+ * A <axis, series> pair can only own to one `AxisStatKey`.
  */
 export type AxisStatKey = string & {_: 'AxisStatKey'}; // Nominal to avoid misusing.
 
@@ -215,11 +220,6 @@ function wrapStatResult(record: AxisStatPerKeyPerAxis | NullUndefined): AxisStat
     };
 }
 
-/**
- * NOTE:
- *  - series declaration order is respected.
- *  - series filtered out are excluded.
- */
 export function eachSeriesOnAxis(
     axis: Axis,
     cb: AxisStatEachSeriesCb
@@ -232,6 +232,11 @@ export function eachSeriesOnAxis(
     seriesOnAxisMap && eachSeriesDeal(ecModel, seriesOnAxisMap.get(axis.model.uid), cb);
 }
 
+/**
+ * NOTE:
+ *  - series declaration order is respected (some ec option precedence matters, e.g., bar series).
+ *  - series filtered out are excluded.
+ */
 export function eachSeriesOnAxisOnKey(
     axis: Axis,
     axisStatKey: AxisStatKey,
@@ -285,6 +290,12 @@ export function countSeriesOnAxisOnKey(
     return count;
 }
 
+/**
+ * NOTICE: Available after `CoordinateSystem['create']` (not included).
+ *
+ * Query all axes that have at least one associated series (via `associateSeriesWithAxis`)
+ * by the given key.
+ */
 export function eachAxisOnKey(
     ecModel: GlobalModel,
     axisStatKey: AxisStatKey,
@@ -296,12 +307,18 @@ export function eachAxisOnKey(
     const keyed = ecModelCacheFullUpdateInner(getCachePerECFullUpdate(ecModel)).keyed;
     const perKey = keyed && keyed.get(axisStatKey);
     perKey && perKey.each(function (perKeyPerAxis) {
+        if (__DEV__) {
+            assert(perKeyPerAxis.sers.length > 0); // This is to avoid irrelevant axes to enter `cb`.
+        }
         cb(perKeyPerAxis.axis);
     });
 }
 
 /**
  * NOTICE: Available after `CoordinateSystem['create']` (not included).
+ *
+ * Query all `AxisStatKey`s that have at least one associated series (via `associateSeriesWithAxis`)
+ * by the given axis.
  */
 export function eachKeyOnAxis(
     axis: Axis,
@@ -310,11 +327,14 @@ export function eachKeyOnAxis(
     if (__DEV__) {
         validateInputAxis(axis);
     }
-    const keys = ecModelCacheFullUpdateInner(getCachePerECFullUpdate(axis.model.ecModel)).keys;
-    keys && keys.each(function (axisStatKeyList) {
-        for (let i = 0; i < axisStatKeyList.length; i++) {
-            cb(axisStatKeyList[i]);
+    const model = axis.model;
+    const keysByAxisModelUid = ecModelCacheFullUpdateInner(getCachePerECFullUpdate(model.ecModel)).keys;
+    keysByAxisModelUid && each(keysByAxisModelUid.get(model.uid), function (axisStatKey) {
+        if (__DEV__) {
+            const stat = getAxisStatPerKeyPerAxis(axis, axisStatKey);
+            assert(stat && stat.sers.length > 0); // This is to avoid irrelevant `AxisStatKey` to enter `cb`.
         }
+        cb(axisStatKey);
     });
 }
 

@@ -104,7 +104,10 @@ export function calcBandWidth(
     //    - For OrdinalScale, fine;
     //    - For numeric scale, `scaleLinearSpan` is normally not used for a consistent result when `dataZoom`
     //      is applied, but used when none or single data item case.
-    const scaleLinearSpan = getScaleLinearSpanForMapping(scale);
+    let scaleLinearSpan = getScaleLinearSpanForMapping(scale);
+    if (!isNullableNumberFinite(scaleLinearSpan)) { // scale may be `[Infinity, -Infinity]`.
+        scaleLinearSpan = NaN;
+    }
     const axisExtent = axis.getExtent();
     // Always use a new pxSpan because it may be changed in `grid` contain label calculation.
     const pxSpan = mathAbs(axisExtent[1] - axisExtent[0]);

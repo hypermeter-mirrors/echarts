@@ -194,6 +194,16 @@ export class ScaleRawExtentInfo {
             ? model.getCategories().length
             : null;
 
+        // [CATEGORY_AXIS_MODEL_DATA_IS_EMPTY_ARRAY]:
+        // This is only for backward compatibility - `xxxAxis: {data: []}` can declare this axis as
+        // a "category" axis and use `series.data` to determine its extent but the axis is blank - only
+        // axis line is displayed. This is a conincidence, but it is used in some cases.
+        let categoryAxisModelDataIsEmptyArray: boolean;
+        if (isOrdinal) {
+            const axisModelDataArray = model.getCategories(true);
+            categoryAxisModelDataIsEmptyArray = axisModelDataArray && !axisModelDataArray.length;
+        }
+
         // NOTE: also considered the input dataExtent may be still in the initialized state `[Infinity, -Infinity]`.
         const dataMM = dataExtent.slice();
         // custom dataMin/dataMax.
@@ -264,18 +274,19 @@ export class ScaleRawExtentInfo {
         const boundaryGap = parseBoundaryGapOption(scale, model);
 
         const span = !isOrdinal
+            // PENDING: Historicall behavior but may not reasonable enough.
             ? ((dataMM[1] - dataMM[0]) || Math.abs(dataMM[0]))
             : null;
         // NOTE: If a numeric axis min/max is specified as 'dataMin'/'dataMax',
         // `boundaryGap` will not be used.
         if (noZoomEffMM[0] == null) {
             noZoomEffMM[0] = isOrdinal
-                ? (axisDataLen ? 0 : NaN)
+                ? (categoryAxisModelDataIsEmptyArray ? dataMM[0] : (axisDataLen ? 0 : NaN))
                 : dataMM[0] - boundaryGap[0] * span;
         }
         if (noZoomEffMM[1] == null) {
             noZoomEffMM[1] = isOrdinal
-                ? (axisDataLen ? axisDataLen - 1 : NaN)
+                ? (categoryAxisModelDataIsEmptyArray ? dataMM[1] : (axisDataLen ? axisDataLen - 1 : NaN))
                 : dataMM[1] + boundaryGap[1] * span;
         }
 
@@ -283,7 +294,8 @@ export class ScaleRawExtentInfo {
         !isValidNumberForExtent(noZoomEffMM[0]) && (noZoomEffMM[0] = NaN);
         !isValidNumberForExtent(noZoomEffMM[1]) && (noZoomEffMM[1] = NaN);
 
-        const isBlank = eqNaN(noZoomEffMM[0]) || eqNaN(noZoomEffMM[1])
+        const isBlank = categoryAxisModelDataIsEmptyArray
+            || eqNaN(noZoomEffMM[0]) || eqNaN(noZoomEffMM[1])
             || (isOrdinal && !axisDataLen);
 
         // NOTE: `needIncludeZero` is not applicable to LogScale, TimeScale, OrdinalScale.

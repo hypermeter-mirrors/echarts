@@ -294,6 +294,7 @@ class DataStore {
 
         // Parse from previous data offset. len may be changed after appendData
         for (let i = offset; i < len; i++) {
+            // See also CATEGORY_AXIS_MODEL_DATA_IS_EMPTY_ARRAY.
             const val = (chunk as any)[i] = ordinalMeta.parseAndCollect(chunk[i]);
             if (!isNaN(val)) {
                 dimRawExtent[0] = Math.min(val, dimRawExtent[0]);
