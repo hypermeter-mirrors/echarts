@@ -1,0 +1,13 @@
+[{
+    "name": "Action 1",
+    "ops": [
+        {
+            "type": "screenshot-auto",
+            "time": 1400,
+            "delay": 400
+        }
+    ],
+    "scrollY": 0,
+    "scrollX": 0,
+    "timestamp": 1712563200000
+}]

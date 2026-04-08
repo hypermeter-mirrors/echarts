@@ -72,6 +72,12 @@ export interface TooltipOption extends CommonTooltipOption<TopLevelFormatterPara
     appendTo?: ((chartContainer: HTMLElement) => HTMLElement | undefined | null) | string | HTMLElement
 
     /**
+     * Hide tooltip on document scroll/touch scroll.
+     * `'auto'` enables this behavior when tooltip is appended outside chart container.
+     */
+    hideOnScroll?: boolean | 'auto'
+
+    /**
      * Specify the class name of tooltip element
      * Only available when renderMode is html
      */
@@ -111,6 +117,9 @@ class TooltipModel extends ComponentModel<TooltipOption> {
         alwaysShowContent: false,
 
         renderMode: 'auto', // 'auto' | 'html' | 'richText'
+
+        // Hide tooltip while page or container scrolls.
+        hideOnScroll: 'auto',
 
         // whether restraint content inside viewRect.
         // If renderMode: 'richText', default true.

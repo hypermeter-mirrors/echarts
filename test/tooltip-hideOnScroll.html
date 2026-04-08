@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="lib/simpleRequire.js"></script>
+    <script src="lib/config.js"></script>
+    <script src="lib/facePrint.js"></script>
+    <script src="lib/testHelper.js"></script>
+    <link rel="stylesheet" href="lib/reset.css" />
+</head>
+<body>
+<style>
+    .chart {
+        height: 260px;
+        margin: 12px 0;
+    }
+</style>
+<div id="main-append-to-body" class="chart"></div>
+<div id="main-default-append" class="chart"></div>
+<script>
+require(['echarts'], function (echarts) {
+    function createOption(appendToBody) {
+        return {
+            tooltip: {
+                trigger: 'item',
+                appendToBody: appendToBody
+            },
+            xAxis: { type: 'category', data: ['a', 'b', 'c'] },
+            yAxis: { type: 'value' },
+            series: [{
+                type: 'line',
+                symbolSize: 16,
+                data: [12, 20, 15]
+            }]
+        };
+    }
+
+    function interceptHideTip(chart) {
+        var hideTipCount = 0;
+        var rawDispatchAction = chart.dispatchAction;
+        chart.dispatchAction = function (payload) {
+            if (payload && payload.type === 'hideTip') {
+                hideTipCount++;
+            }
+            return rawDispatchAction.call(this, payload);
+        };
+        return function () {
+            return hideTipCount;
+        };
+    }
+
+    var chartAppendToBody = testHelper.create(echarts, 'main-append-to-body', {
+        title: [
+            'appendToBody: true',
+            'dispatch scroll event should auto hide tooltip'
+        ],
+        option: createOption(true),
+        height: 260
+    });
+    var chartDefault = testHelper.create(echarts, 'main-default-append', {
+        title: [
+            'appendToBody: false',
+            'dispatch scroll event should keep tooltip logic unchanged'
+        ],
+        option: createOption(false),
+        height: 260
+    });
+
+    var getHideTipCountAppendToBody = interceptHideTip(chartAppendToBody);
+    var getHideTipCountDefault = interceptHideTip(chartDefault);
+
+    setTimeout(function () {
+        chartAppendToBody.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 });
+        chartDefault.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 0 });
+
+        setTimeout(function () {
+            var evt = new Event('scroll', { bubbles: true, cancelable: true });
+            document.dispatchEvent(evt);
+
+            setTimeout(function () {
+                if (getHideTipCountAppendToBody() <= 0) {
+                    throw new Error('Expected hideTip when appendToBody=true and document scrolls.');
+                }
+                if (getHideTipCountDefault() > 0) {
+                    throw new Error('Unexpected hideTip when appendToBody=false in auto mode.');
+                }
+                // Helps visual check in local manual run.
+                facePrint('tooltip hideOnScroll check passed');
+            }, 100);
+        }, 100);
+    }, 100);
+});
+</script>
+</body>
+</html>

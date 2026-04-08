@@ -160,6 +160,10 @@ class TooltipView extends ComponentView {
 
     private _lastDataByCoordSys: DataByCoordSys[];
     private _cbParamsList: TooltipCallbackDataParams[];
+    private _hideOnScrollListener: EventListener;
+    private _hideOnScrollAttached: boolean = false;
+    private _hideOnScrollDocument: Document | null;
+    private _hideOnScrollWindow: Window | null;
 
     init(ecModel: GlobalModel, api: ExtensionAPI) {
         if (env.node || !api.getDom()) {
@@ -199,6 +203,7 @@ class TooltipView extends ComponentView {
         tooltipContent.setEnterable(tooltipModel.get('enterable'));
 
         this._initGlobalListener();
+        this._updateHideOnScrollListener();
 
         this._keepShow();
 
@@ -235,6 +240,78 @@ class TooltipView extends ComponentView {
                 }
             }, this)
         );
+    }
+
+    private _isHideOnScrollEnabled() {
+        const tooltipModel = this._tooltipModel;
+        if (!tooltipModel || this._renderMode === 'richText') {
+            return false;
+        }
+
+        const hideOnScroll = tooltipModel.get('hideOnScroll');
+        if (hideOnScroll === true) {
+            return true;
+        }
+        if (hideOnScroll === false) {
+            return false;
+        }
+
+        // Auto mode: enable only when tooltip content is appended outside chart container.
+        return !!(tooltipModel.get('appendToBody', true) || tooltipModel.get('appendTo', true));
+    }
+
+    private _updateHideOnScrollListener() {
+        if (!this._isHideOnScrollEnabled()) {
+            this._removeHideOnScrollListener();
+            return;
+        }
+        if (this._hideOnScrollAttached) {
+            return;
+        }
+
+        const apiDom = this._api && this._api.getDom();
+        const doc = apiDom && apiDom.ownerDocument;
+        if (!doc) {
+            return;
+        }
+
+        const win = doc.defaultView;
+        if (!win) {
+            return;
+        }
+        const listener = this._hideOnScrollListener || (this._hideOnScrollListener = () => {
+            const tooltipContent = this._tooltipContent;
+            if (!tooltipContent || !tooltipContent.isShow()) {
+                return;
+            }
+            if (this._tooltipModel && this._tooltipModel.get('triggerOn') === 'none') {
+                return;
+            }
+            this._hide(bind(this._api.dispatchAction, this._api));
+        });
+
+        doc.addEventListener('scroll', listener, true);
+        doc.addEventListener('touchmove', listener, true);
+        win.addEventListener('scroll', listener, true);
+        this._hideOnScrollDocument = doc;
+        this._hideOnScrollWindow = win;
+        this._hideOnScrollAttached = true;
+    }
+
+    private _removeHideOnScrollListener() {
+        if (!this._hideOnScrollAttached || !this._hideOnScrollListener) {
+            return;
+        }
+
+        this._hideOnScrollDocument
+            && this._hideOnScrollDocument.removeEventListener('scroll', this._hideOnScrollListener, true);
+        this._hideOnScrollDocument
+            && this._hideOnScrollDocument.removeEventListener('touchmove', this._hideOnScrollListener, true);
+        this._hideOnScrollWindow
+            && this._hideOnScrollWindow.removeEventListener('scroll', this._hideOnScrollListener, true);
+        this._hideOnScrollAttached = false;
+        this._hideOnScrollDocument = null;
+        this._hideOnScrollWindow = null;
     }
 
     private _keepShow() {
@@ -1048,6 +1125,7 @@ class TooltipView extends ComponentView {
             return;
         }
         clear(this, '_updatePosition');
+        this._removeHideOnScrollListener();
         this._tooltipContent.dispose();
         globalListener.unregister('itemTooltip', api);
 
