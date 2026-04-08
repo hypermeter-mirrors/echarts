@@ -40,6 +40,7 @@ import tokens from '../../visual/tokens';
 import { preparePipelineContext } from '../../util/model';
 import type { Pipeline } from '../../core/Scheduler';
 import type ChartView from '../../view/Chart';
+import { SERIES_TYPE_BAR } from '../../layout/barCommon';
 
 type PolarBarLabelPositionExtra = 'start' | 'insideStart' | 'middle' | 'end' | 'insideEnd';
 export type PolarBarLabelPosition = SeriesLabelOption['position'] | PolarBarLabelPositionExtra;
@@ -97,7 +98,7 @@ export interface BarSeriesOption
 }
 
 class BarSeriesModel extends BaseBarSeriesModel<BarSeriesOption> {
-    static type = 'series.bar';
+    static type = 'series.' + SERIES_TYPE_BAR;
     type = BarSeriesModel.type;
 
     static dependencies = ['grid', 'polar'];

@@ -235,8 +235,10 @@ export interface GraphSeriesOption
     autoCurveness?: boolean | number | number[]
 }
 
+export const SERIES_TYPE_GRAPH = 'graph';
+
 class GraphSeriesModel extends SeriesModel<GraphSeriesOption> {
-    static readonly type = 'series.graph';
+    static readonly type = 'series.' + SERIES_TYPE_GRAPH;
     readonly type = GraphSeriesModel.type;
 
     static readonly dependencies = ['grid', 'polar', 'geo', 'singleAxis', 'calendar'];

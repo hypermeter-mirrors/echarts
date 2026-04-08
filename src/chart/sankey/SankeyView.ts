@@ -21,7 +21,7 @@ import * as graphic from '../../util/graphic';
 import { enterEmphasis, leaveEmphasis, toggleHoverEmphasis, setStatesStylesFromModel } from '../../util/states';
 import { LayoutOrient, ECElement } from '../../util/types';
 import type { PathProps, PathStyleProps } from 'zrender/src/graphic/Path';
-import SankeySeriesModel, { SankeyEdgeItemOption, SankeyNodeItemOption } from './SankeySeries';
+import SankeySeriesModel, { SankeyEdgeItemOption, SankeyNodeItemOption, SERIES_TYPE_SANKEY } from './SankeySeries';
 import ChartView from '../../view/Chart';
 import GlobalModel from '../../model/Global';
 import ExtensionAPI from '../../core/ExtensionAPI';
@@ -105,8 +105,8 @@ class SankeyPath extends graphic.Path<SankeyPathProps> {
 
 class SankeyView extends ChartView {
 
-    static readonly type = 'sankey';
-    readonly type = SankeyView.type;
+    static readonly type = SERIES_TYPE_SANKEY;
+    readonly type = SERIES_TYPE_SANKEY;
 
     private _model: SankeySeriesModel;
     private _mainGroup = new graphic.Group();

@@ -37,8 +37,8 @@ import { map } from 'zrender/src/core/util';
 
 
 class BoxplotView extends ChartView {
-    static type = SERIES_TYPE_BOXPLOT;
-    type = BoxplotView.type;
+    static readonly type = SERIES_TYPE_BOXPLOT;
+    readonly type = SERIES_TYPE_BOXPLOT;
 
     private _data: SeriesData;
 

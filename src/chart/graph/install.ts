@@ -19,12 +19,10 @@
 
 import { EChartsExtensionInstallRegisters } from '../../extension';
 
-import categoryFilter from './categoryFilter';
-import categoryVisual from './categoryVisual';
-import edgeVisual from './edgeVisual';
-import simpleLayout from './simpleLayout';
-import circularLayout from './circularLayout';
-import forceLayout from './forceLayout';
+import { graphEdgeVisualStageHandler } from './edgeVisual';
+import { graphSimpleLayoutStageHandler } from './simpleLayout';
+import { graphCircularLayoutStageHandler } from './circularLayout';
+import { graphForceLayoutStageHandler } from './forceLayout';
 import createView from './createView';
 import View from '../../coord/View';
 import GraphView from './GraphView';
@@ -33,6 +31,8 @@ import { RoamPayload, updateCenterAndZoomInAction } from '../../component/helper
 import GlobalModel from '../../model/Global';
 import { noop } from 'zrender/src/core/util';
 import type ExtensionAPI from '../../core/ExtensionAPI';
+import { graphCategoryFilterStageHandler } from './categoryFilter';
+import { graphCategoryVisualStageHandler } from './categoryVisual';
 
 
 export function install(registers: EChartsExtensionInstallRegisters) {
@@ -40,14 +40,14 @@ export function install(registers: EChartsExtensionInstallRegisters) {
     registers.registerChartView(GraphView);
     registers.registerSeriesModel(GraphSeriesModel);
 
-    registers.registerProcessor(categoryFilter);
+    registers.registerProcessor(graphCategoryFilterStageHandler);
 
-    registers.registerVisual(categoryVisual);
-    registers.registerVisual(edgeVisual);
+    registers.registerVisual(graphCategoryVisualStageHandler);
+    registers.registerVisual(graphEdgeVisualStageHandler);
 
-    registers.registerLayout(simpleLayout);
-    registers.registerLayout(registers.PRIORITY.VISUAL.POST_CHART_LAYOUT, circularLayout);
-    registers.registerLayout(forceLayout);
+    registers.registerLayout(graphSimpleLayoutStageHandler);
+    registers.registerLayout(registers.PRIORITY.VISUAL.POST_CHART_LAYOUT, graphCircularLayoutStageHandler);
+    registers.registerLayout(graphForceLayoutStageHandler);
 
     registers.registerCoordinateSystem('graphView', {
         dimensions: View.dimensions,

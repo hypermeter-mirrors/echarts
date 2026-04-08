@@ -20,8 +20,9 @@
 
 import * as zrUtil from 'zrender/src/core/util';
 import SeriesData from '../../data/SeriesData';
-import MapSeries, { MapValueCalculationType } from './MapSeries';
+import MapSeries, { MapValueCalculationType, SERIES_TYPE_MAP } from './MapSeries';
 import GlobalModel from '../../model/Global';
+import { createSimpleOverallStageHandler } from '../../util/model';
 
 // FIXME 公用？
 function dataStatistics(datas: SeriesData[], statisticType: MapValueCalculationType): SeriesData {
@@ -66,9 +67,11 @@ function dataStatistics(datas: SeriesData[], statisticType: MapValueCalculationT
     });
 }
 
-export default function mapDataStatistic(ecModel: GlobalModel): void {
+export const mapDataStatisticStageHandler = createSimpleOverallStageHandler(SERIES_TYPE_MAP, mapDataStatistic);
+
+function mapDataStatistic(ecModel: GlobalModel): void {
     const seriesGroups = {} as {[key: string]: MapSeries[]};
-    ecModel.eachSeriesByType('map', function (seriesModel: MapSeries) {
+    ecModel.eachSeriesByType(SERIES_TYPE_MAP, function (seriesModel: MapSeries) {
         const hostGeoModel = seriesModel.getHostGeoModel();
         const key = hostGeoModel ? 'o' + hostGeoModel.id : 'i' + seriesModel.getMapType();
         (seriesGroups[key] = seriesGroups[key] || []).push(seriesModel);

@@ -22,7 +22,6 @@ import { mathAbs, mathMax, mathMin, parsePercent } from '../util/number';
 import { isDimensionStacked } from '../data/helper/dataStackHelper';
 import createRenderPlanner from '../chart/helper/createRenderPlanner';
 import Axis2D from '../coord/cartesian/Axis2D';
-import GlobalModel from '../model/Global';
 import Cartesian2D from '../coord/cartesian/Cartesian2D';
 import { StageHandler, NullUndefined } from '../util/types';
 import { createFloat32Array } from '../util/vendor';
@@ -349,25 +348,33 @@ function calcBarWidthAndOffset(
     return result;
 }
 
-export function layout(seriesType: BaseBarSeriesSubType, ecModel: GlobalModel): void {
-    const axisStatKey = makeAxisStatKey2(seriesType, COORD_SYS_TYPE_CARTESIAN_2D);
-    eachAxisOnKey(ecModel, axisStatKey, function (axis: Axis2D) {
-        if (__DEV__) {
-            assert(axis instanceof Axis2D);
-        }
-        const columnLayout = makeColumnLayoutOnAxisReal(axis, seriesType);
+export function createCrossSeriesLayoutHandler(seriesType: BaseBarSeriesSubType): StageHandler {
+    return {
 
-        eachSeriesOnAxisOnKey(axis, axisStatKey, function (seriesModel) {
-            const columnLayoutInfo = columnLayout.columnMap[getSeriesStackId(seriesModel)];
-            seriesModel.getData().setLayout({
-                bandWidth: columnLayoutInfo.bandWidth,
-                offset: columnLayoutInfo.offset,
-                size: columnLayoutInfo.width
+        seriesType,
+
+        overallReset(ecModel) {
+            const axisStatKey = makeAxisStatKey2(seriesType, COORD_SYS_TYPE_CARTESIAN_2D);
+            eachAxisOnKey(ecModel, axisStatKey, function (axis: Axis2D) {
+                if (__DEV__) {
+                    assert(axis instanceof Axis2D);
+                }
+                const columnLayout = makeColumnLayoutOnAxisReal(axis, seriesType);
+
+                eachSeriesOnAxisOnKey(axis, axisStatKey, function (seriesModel) {
+                    const columnLayoutInfo = columnLayout.columnMap[getSeriesStackId(seriesModel)];
+                    seriesModel.getData().setLayout({
+                        bandWidth: columnLayoutInfo.bandWidth,
+                        offset: columnLayoutInfo.offset,
+                        size: columnLayoutInfo.width
+                    });
+                });
+
             });
-        });
+        }
+    };
+};
 
-    });
-}
 
 // TODO: Do not support stack in large mode yet.
 export function createProgressiveLayout(seriesType: string): StageHandler {

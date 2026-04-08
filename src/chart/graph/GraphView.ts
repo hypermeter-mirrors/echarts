@@ -32,7 +32,7 @@ import {getNodeGlobalScale} from './graphHelper';
 import ChartView from '../../view/Chart';
 import GlobalModel from '../../model/Global';
 import ExtensionAPI from '../../core/ExtensionAPI';
-import GraphSeriesModel, { GraphNodeItemOption, GraphEdgeItemOption } from './GraphSeries';
+import GraphSeriesModel, { GraphNodeItemOption, GraphEdgeItemOption, SERIES_TYPE_GRAPH } from './GraphSeries';
 import { CoordinateSystem } from '../../coord/CoordinateSystem';
 import View from '../../coord/View';
 import Symbol from '../helper/Symbol';
@@ -53,8 +53,8 @@ function isViewCoordSys(coordSys: CoordinateSystem): coordSys is View {
 
 class GraphView extends ChartView {
 
-    static readonly type = 'graph';
-    readonly type = GraphView.type;
+    static readonly type = SERIES_TYPE_GRAPH;
+    readonly type = SERIES_TYPE_GRAPH;
 
     private _symbolDraw: SymbolDraw;
     private _lineDraw: LineDraw;

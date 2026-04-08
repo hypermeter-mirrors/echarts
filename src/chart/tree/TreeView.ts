@@ -28,7 +28,7 @@ import * as roamHelper from '../../component/helper/roamHelper';
 import RoamController from '../../component/helper/RoamController';
 import {parsePercent} from '../../util/number';
 import ChartView from '../../view/Chart';
-import TreeSeriesModel, { TreeSeriesOption, TreeSeriesNodeItemOption } from './TreeSeries';
+import TreeSeriesModel, { TreeSeriesOption, TreeSeriesNodeItemOption, SERIES_TYPE_TREE } from './TreeSeries';
 import Path, { PathProps, PathStyleProps } from 'zrender/src/graphic/Path';
 import GlobalModel from '../../model/Global';
 import ExtensionAPI from '../../core/ExtensionAPI';
@@ -126,8 +126,8 @@ class TreePath extends Path<TreeEdgePathProps> {
 
 class TreeView extends ChartView {
 
-    static readonly type = 'tree';
-    readonly type = TreeView.type;
+    static readonly type = SERIES_TYPE_TREE;
+    readonly type = SERIES_TYPE_TREE;
 
     private _mainGroup = new graphic.Group();
 

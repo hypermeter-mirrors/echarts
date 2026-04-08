@@ -46,7 +46,7 @@ import ExtensionAPI from './ExtensionAPI';
 import CoordinateSystemManager from './CoordinateSystem';
 import OptionManager from '../model/OptionManager';
 import backwardCompat from '../preprocessor/backwardCompat';
-import dataStack from '../processor/dataStack';
+import { dataStackStageHandler } from '../processor/dataStack';
 import ComponentModel from '../model/Component';
 import SeriesModel from '../model/Series';
 import ComponentView, {ComponentViewConstructor} from '../view/Component';
@@ -124,7 +124,6 @@ import { createLocaleObject, SYSTEM_LANG, LocaleOption } from './locale';
 
 import type {EChartsOption} from '../export/option';
 import { findEventDispatcher } from '../util/event';
-import decal from '../visual/decal';
 import CanvasPainter from 'zrender/src/canvas/Painter';
 import SVGPainter from 'zrender/src/svg/Painter';
 import lifecycle, {
@@ -141,6 +140,7 @@ import {
 } from '../chart/custom/customSeriesRegister';
 import { resetCachePerECFullUpdate, resetCachePerECPrepare } from '../util/cycleCache';
 import globalDefault from '../model/globalDefault';
+import { decalVisualStageHandler } from '../visual/decal';
 
 declare let global: any;
 
@@ -3320,10 +3320,10 @@ registerVisual(PRIORITY_VISUAL_CHART_DATA_CUSTOM, dataColorPaletteTask);
 registerVisual(PRIORITY_VISUAL_GLOBAL, seriesSymbolTask);
 registerVisual(PRIORITY_VISUAL_CHART_DATA_CUSTOM, dataSymbolTask);
 
-registerVisual(PRIORITY_VISUAL_DECAL, decal);
+registerVisual(PRIORITY_VISUAL_DECAL, decalVisualStageHandler);
 
 registerPreprocessor(backwardCompat);
-registerProcessor(PRIORITY_PROCESSOR_DATASTACK, dataStack);
+registerProcessor(PRIORITY_PROCESSOR_DATASTACK, dataStackStageHandler);
 registerLoading('default', loadingDefault);
 
 // Default actions

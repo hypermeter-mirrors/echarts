@@ -21,12 +21,12 @@ import { EChartsExtensionInstallRegisters } from '../../extension';
 import SankeyView from './SankeyView';
 import SankeySeriesModel from './SankeySeries';
 
-import sankeyLayout from './sankeyLayout';
-import sankeyVisual from './sankeyVisual';
 import { Payload } from '../../util/types';
 import GlobalModel from '../../model/Global';
 import { updateCenterAndZoomInAction, RoamPayload } from '../../component/helper/roamHelper';
 import type ExtensionAPI from '../../core/ExtensionAPI';
+import { sankeyLayoutStageHandler } from './sankeyLayout';
+import { sankeyVisualStageHandler } from './sankeyVisual';
 
 interface SankeyDragNodePayload extends Payload {
     localX: number
@@ -37,8 +37,8 @@ export function install(registers: EChartsExtensionInstallRegisters) {
     registers.registerChartView(SankeyView);
     registers.registerSeriesModel(SankeySeriesModel);
 
-    registers.registerLayout(sankeyLayout);
-    registers.registerVisual(sankeyVisual);
+    registers.registerLayout(sankeyLayoutStageHandler);
+    registers.registerVisual(sankeyVisualStageHandler);
 
     registers.registerAction({
         type: 'dragNode',

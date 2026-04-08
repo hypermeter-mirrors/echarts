@@ -25,9 +25,13 @@ import { EChartsExtensionInstallRegisters } from '../extension';
 import { isNullableNumberFinite } from '../util/number';
 
 
-export type BaseBarSeriesSubType = 'bar' | 'pictorialBar';
+export type BaseBarSeriesSubType =
+    typeof SERIES_TYPE_BAR
+    | typeof SERIES_TYPE_PICTORIAL_BAR;
 
-export const BAR_SERIES_TYPE = 'bar';
+export const SERIES_TYPE_BAR = 'bar';
+export const SERIES_TYPE_PICTORIAL_BAR = 'pictorialBar';
+
 
 export function requireAxisStatisticsForBaseBar(
     registers: EChartsExtensionInstallRegisters,

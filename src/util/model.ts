@@ -51,6 +51,8 @@ import {
     NullUndefined,
     SeriesOption,
     SeriesLargeOptionMixin,
+    StageHandler,
+    StageHandlerOverallReset,
 } from './types';
 import { Dictionary } from 'zrender/src/core/types';
 import type SeriesModel from '../model/Series';
@@ -1394,4 +1396,22 @@ export function validateUpstreamOutputRange(
         upstreamOutputRange.start === thisTaskPlannedRange.start
         && upstreamOutputRange.end === thisTaskPlannedRange.end
     );
+}
+
+export function createSimpleOverallStageHandler(
+    seriesType: ComponentSubType,
+    overallReset: StageHandlerOverallReset
+): StageHandler {
+    return {
+        seriesType: seriesType,
+        overallReset: overallReset
+    };
+}
+
+export function createSimpleOverallStageHandler2(
+    overallReset: StageHandlerOverallReset
+): StageHandler {
+    return {
+        overallReset: overallReset
+    };
 }

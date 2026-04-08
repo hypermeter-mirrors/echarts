@@ -24,14 +24,13 @@ import type Polar from '../coord/polar/Polar';
 import AngleAxis from '../coord/polar/AngleAxis';
 import RadiusAxis from '../coord/polar/RadiusAxis';
 import GlobalModel from '../model/Global';
-import ExtensionAPI from '../core/ExtensionAPI';
 import { Dictionary } from '../util/types';
 import { calcBandWidth } from '../coord/axisBand';
 import { createBandWidthBasedAxisContainShapeHandler, makeAxisStatKey2 } from '../chart/helper/axisSnippets';
-import { makeCallOnlyOnce } from '../util/model';
+import { createSimpleOverallStageHandler, makeCallOnlyOnce } from '../util/model';
 import { EChartsExtensionInstallRegisters } from '../extension';
 import { registerAxisContainShapeHandler } from '../coord/scaleRawExtentInfo';
-import { getStartValue, requireAxisStatisticsForBaseBar } from './barCommon';
+import { getStartValue, requireAxisStatisticsForBaseBar, SERIES_TYPE_BAR } from './barCommon';
 import { eachAxisOnKey, eachSeriesOnAxisOnKey } from '../coord/axisStatistics';
 import { COORD_SYS_TYPE_POLAR } from '../coord/polar/PolarModel';
 import type Axis from '../coord/Axis';
@@ -63,15 +62,17 @@ function getSeriesStackId(seriesModel: BarSeriesModel) {
         || '__ec_stack_' + seriesModel.seriesIndex;
 }
 
-export function barLayoutPolar(seriesType: 'bar', ecModel: GlobalModel, api: ExtensionAPI) {
-    const axisStatKey = makeAxisStatKey2(seriesType, COORD_SYS_TYPE_POLAR);
+export const barLayoutPolarStageHandler = createSimpleOverallStageHandler(SERIES_TYPE_BAR, barLayoutPolar);
+
+function barLayoutPolar(ecModel: GlobalModel) {
+    const axisStatKey = makeAxisStatKey2(SERIES_TYPE_BAR, COORD_SYS_TYPE_POLAR);
 
     eachAxisOnKey(ecModel, axisStatKey, function (axis: PolarAxis) {
         if (__DEV__) {
             assert((axis instanceof AngleAxis) || axis instanceof RadiusAxis);
         }
 
-        const barWidthAndOffset = calcRadialBar(axis, seriesType);
+        const barWidthAndOffset = calcRadialBar(axis, SERIES_TYPE_BAR);
 
         const lastStackCoords: LastStackCoords = {};
         eachSeriesOnAxisOnKey(axis, axisStatKey, function (seriesModel: BarSeriesModel) {

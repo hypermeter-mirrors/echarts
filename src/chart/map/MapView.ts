@@ -21,7 +21,7 @@
 import * as graphic from '../../util/graphic';
 import MapDraw from '../../component/helper/MapDraw';
 import ChartView from '../../view/Chart';
-import MapSeries, { MapDataItemOption } from './MapSeries';
+import MapSeries, { MapDataItemOption, SERIES_TYPE_MAP } from './MapSeries';
 import GlobalModel from '../../model/Global';
 import ExtensionAPI from '../../core/ExtensionAPI';
 import { Payload, DisplayState, ECElement } from '../../util/types';
@@ -31,8 +31,8 @@ import { setStatesFlag, Z2_EMPHASIS_LIFT } from '../../util/states';
 
 class MapView extends ChartView {
 
-    static type = 'map' as const;
-    readonly type = MapView.type;
+    static readonly type = SERIES_TYPE_MAP;
+    readonly type = SERIES_TYPE_MAP;
 
     private _mapDraw: MapDraw;
 

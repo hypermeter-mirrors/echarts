@@ -25,7 +25,7 @@ import {
     countSeriesOnAxisOnKey, eachAxisOnKey, eachSeriesOnAxisOnKey,
     requireAxisStatistics
 } from '../../coord/axisStatistics';
-import { makeCallOnlyOnce } from '../../util/model';
+import { createSimpleOverallStageHandler, makeCallOnlyOnce } from '../../util/model';
 import { EChartsExtensionInstallRegisters } from '../../extension';
 import Axis from '../../coord/Axis';
 import { registerAxisContainShapeHandler } from '../../coord/scaleRawExtentInfo';
@@ -44,7 +44,9 @@ export interface BoxplotItemLayout {
     initBaseline: number
 }
 
-export function boxplotLayout(ecModel: GlobalModel) {
+export const boxplotLayoutStageHandler = createSimpleOverallStageHandler(SERIES_TYPE_BOXPLOT, boxplotLayout);
+
+function boxplotLayout(ecModel: GlobalModel) {
     const axisStatKey = makeAxisStatKey(SERIES_TYPE_BOXPLOT);
     eachAxisOnKey(ecModel, axisStatKey, function (axis) {
         const seriesCount = countSeriesOnAxisOnKey(axis, axisStatKey);

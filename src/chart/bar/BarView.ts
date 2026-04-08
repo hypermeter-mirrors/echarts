@@ -70,6 +70,7 @@ import { saveOldStyle } from '../../animation/basicTransition';
 import Element from 'zrender/src/Element';
 import { getSectorCornerRadius } from '../helper/sectorHelper';
 import { getIncrementalId } from '../../util/model';
+import { SERIES_TYPE_BAR } from '../../layout/barCommon';
 
 const mathMax = Math.max;
 const mathMin = Math.min;
@@ -95,8 +96,8 @@ type OrderMapping = (dataIndex: number) => number;
 
 
 class BarView extends ChartView {
-    static type = 'bar' as const;
-    type = BarView.type;
+    static readonly type = SERIES_TYPE_BAR;
+    readonly type = SERIES_TYPE_BAR;
 
     private _data: SeriesData;
 

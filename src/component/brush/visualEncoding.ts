@@ -32,7 +32,7 @@ import SeriesModel from '../../model/Series';
 import ParallelSeriesModel from '../../chart/parallel/ParallelSeries';
 import { ZRenderType } from 'zrender/src/zrender';
 import { BrushType, BrushDimensionMinMax } from '../helper/BrushController';
-import { initExtentForUnion } from '../../util/model';
+import { createSimpleOverallStageHandler2, initExtentForUnion } from '../../util/model';
 
 type BrushVisualState = 'inBrush' | 'outOfBrush';
 
@@ -65,10 +65,12 @@ export function layoutCovers(ecModel: GlobalModel): void {
     });
 }
 
+export const brushVisualStageHandler = createSimpleOverallStageHandler2(brushVisual);
+
 /**
  * Register the visual encoding if this modules required.
  */
-export default function brushVisual(ecModel: GlobalModel, api: ExtensionAPI, payload: Payload) {
+function brushVisual(ecModel: GlobalModel, api: ExtensionAPI, payload: Payload) {
 
     const brushSelected: BrushSelectedItem[] = [];
     let throttleType;

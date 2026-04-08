@@ -129,8 +129,11 @@ export interface TreeSeriesCallbackDataParams extends CallbackDataParams {
     treeAncestors?: TreeAncestors[]
 }
 
+export const SERIES_TYPE_TREE = 'tree';
+
 class TreeSeriesModel extends SeriesModel<TreeSeriesOption> {
-    static readonly type = 'series.tree';
+    static readonly type = 'series.' + SERIES_TYPE_TREE;
+    readonly type = TreeSeriesModel.type;
 
     // can support the position parameters 'left', 'top','right','bottom', 'width',
     // 'height' in the setOption() with 'merge' mode normal.

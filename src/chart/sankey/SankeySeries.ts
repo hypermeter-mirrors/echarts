@@ -152,8 +152,10 @@ export interface SankeySeriesOption
     }
 }
 
+export const SERIES_TYPE_SANKEY = 'sankey';
+
 class SankeySeriesModel extends SeriesModel<SankeySeriesOption> {
-    static readonly type = 'series.sankey';
+    static readonly type = 'series.' + SERIES_TYPE_SANKEY;
     readonly type = SankeySeriesModel.type;
 
     static layoutMode = 'box' as const;

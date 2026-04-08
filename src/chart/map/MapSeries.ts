@@ -99,10 +99,12 @@ export interface MapSeriesOption extends
     nameProperty?: string;
 }
 
+export const SERIES_TYPE_MAP = 'map';
+
 class MapSeries extends SeriesModel<MapSeriesOption> {
 
-    static type = 'series.map' as const;
-    type = MapSeries.type;
+    static readonly type = 'series.' + SERIES_TYPE_MAP;
+    readonly type = MapSeries.type;
 
     static dependencies = ['geo'];
 

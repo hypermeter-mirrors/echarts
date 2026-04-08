@@ -33,9 +33,8 @@ import polarCreator from '../../coord/polar/polarCreator';
 import AngleAxisView from '../axis/AngleAxisView';
 import RadiusAxisView from '../axis/RadiusAxisView';
 import ComponentView from '../../view/Component';
-import { curry } from 'zrender/src/core/util';
-import { barLayoutPolar, registerBarPolarAxisHandlers } from '../../layout/barPolar';
-import { BAR_SERIES_TYPE } from '../../layout/barCommon';
+import { barLayoutPolarStageHandler, registerBarPolarAxisHandlers } from '../../layout/barPolar';
+import { SERIES_TYPE_BAR } from '../../layout/barCommon';
 
 
 const angleAxisExtraOption: AngleAxisOption = {
@@ -80,7 +79,7 @@ export function install(registers: EChartsExtensionInstallRegisters) {
     registers.registerComponentView(AngleAxisView);
     registers.registerComponentView(RadiusAxisView);
 
-    registers.registerLayout(curry(barLayoutPolar, BAR_SERIES_TYPE));
+    registers.registerLayout(barLayoutPolarStageHandler);
 
-    registerBarPolarAxisHandlers(registers, BAR_SERIES_TYPE);
+    registerBarPolarAxisHandlers(registers, SERIES_TYPE_BAR);
 }

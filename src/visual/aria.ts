@@ -22,7 +22,7 @@ import ExtensionAPI from '../core/ExtensionAPI';
 import GlobalModel from '../model/Global';
 import Model from '../model/Model';
 import SeriesModel from '../model/Series';
-import {makeInner} from '../util/model';
+import {createSimpleOverallStageHandler2, makeInner} from '../util/model';
 import {Dictionary, DecalObject, InnerDecalObject, AriaOption} from '../util/types';
 import {LocaleOption} from '../core/locale';
 import { getDecalFromPalette } from '../model/mixin/palette';
@@ -43,7 +43,10 @@ const decalPaletteScope: Dictionary<DecalObject> = {};
 
 type SeriesTypes = keyof LocaleOption['series']['typeNames'];
 
-export default function ariaVisual(ecModel: GlobalModel, api: ExtensionAPI) {
+
+export const ariaVisualStageHandler = createSimpleOverallStageHandler2(ariaVisual);
+
+function ariaVisual(ecModel: GlobalModel, api: ExtensionAPI) {
     const ariaModel: Model<AriaOption> = ecModel.getModel('aria');
 
     // See "area enabled" detection code in `GlobalModel.ts`.

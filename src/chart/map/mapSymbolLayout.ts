@@ -20,14 +20,18 @@
 
 import * as zrUtil from 'zrender/src/core/util';
 import GlobalModel from '../../model/Global';
-import MapSeries from './MapSeries';
+import MapSeries, { SERIES_TYPE_MAP } from './MapSeries';
 import { Dictionary } from '../../util/types';
+import { createSimpleOverallStageHandler } from '../../util/model';
 
-export default function mapSymbolLayout(ecModel: GlobalModel) {
+
+export const mapSymbolLayoutStageHandler = createSimpleOverallStageHandler(SERIES_TYPE_MAP, mapSymbolLayout);
+
+function mapSymbolLayout(ecModel: GlobalModel) {
 
     const processedMapType = {} as {[mapType: string]: boolean};
 
-    ecModel.eachSeriesByType('map', function (mapSeries: MapSeries) {
+    ecModel.eachSeriesByType(SERIES_TYPE_MAP, function (mapSeries: MapSeries) {
         const mapType = mapSeries.getMapType();
         if (mapSeries.getHostGeoModel() || processedMapType[mapType]) {
             return;
