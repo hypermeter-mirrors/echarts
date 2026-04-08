@@ -37,7 +37,7 @@ import {
     unionExtentEndFromNumber,
     ensureExtentAscSimply,
 } from '../util/model';
-import { getDataDimensionsOnAxis, isAxisOnBand } from './axisHelper';
+import { discourageOnAxisZero, getDataDimensionsOnAxis, isAxisOnBand } from './axisHelper';
 import {
     getCoordForCoordSysUsageKindBox
 } from '../core/CoordinateSystem';
@@ -786,6 +786,8 @@ export function adoptScaleExtentKindMapping(
                 linearSupplement = linearSupplement || [0, 0];
                 unionExtentStartFromNumber(linearSupplement, singleLinearSupplement[0]);
                 unionExtentEndFromNumber(linearSupplement, singleLinearSupplement[1]);
+
+                discourageOnAxisZero(axis);
             }
         }
     });

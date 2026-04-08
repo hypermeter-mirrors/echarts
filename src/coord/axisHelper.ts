@@ -59,13 +59,8 @@ import ComponentModel from '../model/Component';
 
 
 const axisInner = makeInner<{
-    noOnMyZero: DiscourageOnAxisZeroCondition;
+    noOnMyZero: boolean;
 }, Axis>();
-
-type DiscourageOnAxisZeroCondition = {
-    dz?: boolean;
-    base?: boolean;
-};
 
 
 export function determineAxisType(
@@ -162,20 +157,15 @@ export const SCALE_VALUE_POSITION_KIND_EDGE = 2;
 export const SCALE_VALUE_POSITION_KIND_OUTSIDE = 3;
 
 
-export function discourageOnAxisZero(axis: Axis, reason: Partial<DiscourageOnAxisZeroCondition>): void {
-    zrUtil.defaults(axisInner(axis).noOnMyZero || (axisInner(axis).noOnMyZero = {}), reason);
+export function discourageOnAxisZero(axis: Axis): void {
+    axisInner(axis).noOnMyZero = true;
 }
 
 /**
  * `true`: Prevent orthoganal axes from positioning at the zero point of this axis.
  */
 export function isOnAxisZeroDiscouraged(axis: Axis): boolean {
-    const noOnMyZero = axisInner(axis).noOnMyZero;
-    // Empirically, onZero causes weird effect when dataZoom is used on an "base axis". Consider
-    // bar series as an example. And also consider when `SCALE_EXTENT_KIND_MAPPING` is used, where
-    // the axis line is likely to cross the series shapes unexpectedly.
-    // Conservatively, we use "&&" rather than "||" here.
-    return noOnMyZero && noOnMyZero.dz && noOnMyZero.base;
+    return axisInner(axis).noOnMyZero;
 }
 
 /**

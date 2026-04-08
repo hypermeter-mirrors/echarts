@@ -43,11 +43,6 @@ export function createBandWidthBasedAxisContainShapeHandler(axisStatKey: AxisSta
     //                         |----|----------------------|--|
     //                  minValNew    minValOld     maxValOld maxValNew
     //     (Note: `|---|` above represents "pixels" rather than "data".)
-    //  Regarding single data item case:
-    //    (See test/axis-extreme2.html)
-    //    - TimeScale and OrdinalScale do not need to handle it, since they have
-    //      ensured single data item is laid out at the middle of the axis.
-    //    - IntervalScale and LogScale ...................
 
     return function (axis, ecModel) {
         const bandWidthResult = calcBandWidth(axis, {fromStat: {key: axisStatKey}});

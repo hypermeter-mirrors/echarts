@@ -379,6 +379,8 @@ export interface StageHandler {
      *
      * The `overallReset` method is called iff this task is "dirty" (See `Task['dirty']`).
      * See EC_TASK_DIRTY for a summary of possible `dirty()` calls.
+     *
+     * @see dirtyOnOverallProgress If a OVERALL_STAGE_TASK need to handle series data.
      */
     overallReset?: StageHandlerOverallReset;
 
@@ -402,10 +404,12 @@ export interface StageHandler {
     /**
      * This is a temporary mechanism primarily for a dataZoom case in `appendData`.
      *
-     * Ordinarily, `overallReset` is not called in progress in the subsequent frames,
-     * but `dirtyOnOverallProgress: true` allows all pipelines to be blocked until
-     * this stage, thereby no `overallReset` call being omitted.
-     * (See PerformStageTaskOpt['block'] for its meaning.)
+     * Ordinarily, `overallReset` is NOT called in progress in the subsequent frames, which is suitable
+     * for most OVERALL_STAGE_TASK, where no series data related operations is performed (e.g., color
+     * palette task).
+     * But some certain OVERALL_STAGE_TASK need to handle series data, where `dirtyOnOverallProgress: true`
+     * is required. It allows all pipelines to be blocked until this stage, thereby no `overallReset` call
+     * being omitted. (See PerformStageTaskOpt['block'] for its meaning.) (e.g., dataZoom task)
      *
      * NOTE_IMPL: It will set this OVERALL_STAGE_TASK dirty when the pipeline progress.
      * Moreover, to avoid calling the OVERALL_STAGE_TASK each frame (too frequent),

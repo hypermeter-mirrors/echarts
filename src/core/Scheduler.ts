@@ -108,7 +108,7 @@ interface OverallTaskContext extends TaskContext {
 }
 interface StubTaskContext extends TaskContext {
     model: SeriesModel;
-    dirtyOnOverallProgress: boolean;
+    dirtyOnOverallProgress: StageHandler['dirtyOnOverallProgress'];
 };
 
 class Scheduler {

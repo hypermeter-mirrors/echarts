@@ -126,10 +126,12 @@ export type AxisStatKeyedClient = {
 
 /**
  * Within each individual axis, different groups of relevant series and statistics are
- * designated by `AxisStatKey`. In most case `seriesType` is used as `AxisStatKey`.
+ * designated by a `AxisStatKey`.
+ * In most case `seriesType` is used as `AxisStatKey`.
  */
 export type AxisStatKey = string & {_: 'AxisStatKey'}; // Nominal to avoid misusing.
-type ClientQueryKey = string & {_: 'ClientQueryKey'}; // Nominal to avoid misusing; internal usage.
+
+type ClientLookupKey = string & {_: 'ClientLookupKey'}; // Nominal to avoid misusing; internal usage.
 
 export type AxisStatMetrics = {
 
@@ -468,7 +470,7 @@ function performStatisticsForRecord(
 // For performance optimization.
 const tmpValueBuffer = tryEnsureTypedArray(
     {ctor: Float64ArrayCtor},
-    50 // arbitrary. May be expanded if needed.
+    50 // An arbitrary initial capability.
 );
 
 /**
@@ -525,8 +527,8 @@ export function associateSeriesWithAxis(
     const seriesType = seriesModel.subType;
     const isBaseAxis = seriesModel.getBaseAxis() === axis;
 
-    const client = clientsByQueryKey.get(makeClientQueryKey(seriesType, isBaseAxis, coordSysType))
-        || clientsByQueryKey.get(makeClientQueryKey(seriesType, isBaseAxis, null));
+    const client = clientsForLookup.get(makeClientLookupKey(seriesType, isBaseAxis, coordSysType))
+        || clientsForLookup.get(makeClientLookupKey(seriesType, isBaseAxis, null));
     if (!client) {
         return;
     }
@@ -554,16 +556,16 @@ export function associateSeriesWithAxis(
  * NOTE: Currently, the scenario is simple enough to look up clients by hash map.
  * Otherwise, a caller-provided `filter` may be an alternative if more complex requirements arise.
  */
-function makeClientQueryKey(
+function makeClientLookupKey(
     seriesType: ComponentSubType,
     isBaseAxis: boolean | NullUndefined,
     coordSysType: CoordinateSystem['type'] | NullUndefined
-): ClientQueryKey {
+): ClientLookupKey {
     return (
         seriesType
         + AXIS_STAT_KEY_DELIMITER + retrieve2(isBaseAxis, true)
         + AXIS_STAT_KEY_DELIMITER + (coordSysType || '')
-    ) as ClientQueryKey;
+    ) as ClientLookupKey;
 }
 
 /**
@@ -575,18 +577,18 @@ export function requireAxisStatistics(
     registers: EChartsExtensionInstallRegisters,
     client: AxisStatKeyedClient
 ): void {
-    const queryKey = makeClientQueryKey(client.seriesType, client.baseAxis, client.coordSysType);
+    const clientKey = makeClientLookupKey(client.seriesType, client.baseAxis, client.coordSysType);
 
     if (__DEV__) {
         assert(client.seriesType
             && client.key
-            && !clientsCheckStatKey.get(client.key)
-            && !clientsByQueryKey.get(queryKey)
+            && !clientsForCheckingStatKey.get(client.key)
+            && !clientsForLookup.get(clientKey)
         ); // More checking is performed in `axSerPairCheck`.
-        clientsCheckStatKey.set(client.key, 1);
+        clientsForCheckingStatKey.set(client.key, 1);
     }
 
-    clientsByQueryKey.set(queryKey, client);
+    clientsForLookup.set(clientKey, client);
 
     callOnlyOnce(registers, function () {
         registers.registerProcessor(registers.PRIORITY.PROCESSOR.AXIS_STATISTICS, {
@@ -597,8 +599,8 @@ export function requireAxisStatistics(
     });
 }
 
-let clientsCheckStatKey: HashMap<1, AxisStatKey>;
+let clientsForCheckingStatKey: HashMap<1, AxisStatKey>;
 if (__DEV__) {
-    clientsCheckStatKey = createHashMap();
+    clientsForCheckingStatKey = createHashMap();
 }
-const clientsByQueryKey: HashMap<AxisStatKeyedClient, ClientQueryKey> = createHashMap();
+const clientsForLookup: HashMap<AxisStatKeyedClient, ClientLookupKey> = createHashMap();

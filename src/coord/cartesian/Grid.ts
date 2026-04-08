@@ -32,7 +32,6 @@ import {
     shouldAxisShow,
     retrieveAxisBreaksOption,
     determineAxisType,
-    discourageOnAxisZero,
     isOnAxisZeroDiscouraged,
     SCALE_VALUE_POSITION_KIND_OUTSIDE,
     SCALE_VALUE_POSITION_KIND_EDGE,
@@ -454,8 +453,6 @@ class Grid implements CoordinateSystemMaster {
 
                 cartesian.addAxis(xAxis);
                 cartesian.addAxis(yAxis);
-
-                discourageOnAxisZero(cartesian.getBaseAxis(), {base: true});
             });
         });
 
@@ -699,6 +696,13 @@ function canOnZeroToAxis(
         && kindEffective !== SCALE_VALUE_POSITION_KIND_OUTSIDE;
 
     if (can && onZeroOption === 'auto'
+        // Historically, "value" axis and "log" axis has been using `onZero: true` as the default.
+        // It suitable for mathematic cases, even when dataZoom exists (e.g., `clip.html`), or cases
+        // need to distinguish positive and negative data. However, it probably causes odd effect if
+        // a "value axis" is laid on zero of a "base axis" in bar/candlestick, where the axis line
+        // would likely cross shapes when `SCALE_EXTENT_KIND_MAPPING` is applied.
+        // Therefore, we preserve backward compatibility of the default `onZero: true`, but exclude
+        // cases that `containShape` is applied.
         && (
             isOnAxisZeroDiscouraged(axis)
             || (

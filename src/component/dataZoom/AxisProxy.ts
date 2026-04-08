@@ -36,7 +36,6 @@ import {
     AXIS_EXTENT_INFO_BUILD_FROM_DATA_ZOOM, scaleRawExtentInfoCreate,
     ScaleRawExtentResultForZoom,
 } from '../../coord/scaleRawExtentInfo';
-import { discourageOnAxisZero } from '../../coord/axisHelper';
 
 
 interface MinMaxSpan {
@@ -352,8 +351,6 @@ class AxisProxy {
         // consistent.
         const axis = this.getAxisModel().axis;
         scaleRawExtentInfoCreate(this.ecModel, axis, AXIS_EXTENT_INFO_BUILD_FROM_DATA_ZOOM);
-
-        discourageOnAxisZero(axis, {dz: true});
 
         const rawExtentInfo = axis.scale.rawExtentInfo;
         this._extent = rawExtentInfo.makeNoZoom();

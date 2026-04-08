@@ -45,19 +45,17 @@ export type AxisBandWidthResult = {
     w2: number;
 };
 
-/**
- * PENDING: Should the `bandWidth` strategy be chosen by users, or auto-determined basesd on
- * performance?
- */
 type CalculateBandWidthOpt = {
     // Only used on non-'category' axes. Calculate `bandWidth` based on statistics.
     // Require `requireAxisStatistics` to be called.
     fromStat?: {
-        // Either `axisStatKey` or `series` is required.
-        // If multiple axis statistics can be queried by `series`, currently we only support to return a
-        // maximum `bandWidth`, which is suitable for cases like "axis pointer shadow".
-        sers?: (SeriesModel | NullUndefined)[] | NullUndefined;
+        // Either `key` or `sers` is required.
+        //  - `key`: Calculate `bandWidth` based on a series collection defined by the `AxisStatKey`.
         key?: AxisStatKey;
+        //  - `sers`: Query all keys by the given series collection and union the corresponding bandWidth.
+        //    PENDING: If multiple axis statistics can be queried by `series`, currently we only support
+        //    to return a maximum `bandWidth`, which is suitable for cases like "axis pointer shadow".
+        sers?: (SeriesModel | NullUndefined)[] | NullUndefined;
     };
     // It also act as a fallback for NaN/null/undefined result.
     min?: number;
