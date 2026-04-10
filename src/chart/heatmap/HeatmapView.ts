@@ -131,7 +131,7 @@ class HeatmapView extends ChartView {
         this.group.removeAll();
 
         const coordSys = seriesModel.coordinateSystem;
-        const emptyCellFill: ZRColor = ecModel.get('backgroundColor') || tokens.color.neutral00;
+        const emptyCellFill: ZRColor = ecModel.get('backgroundColor') || tokens.color.background;
         if (coordSys.type === 'cartesian2d'
             || coordSys.type === 'calendar'
             || coordSys.type === 'matrix'
@@ -156,7 +156,7 @@ class HeatmapView extends ChartView {
         api: ExtensionAPI
     ) {
         const coordSys = seriesModel.coordinateSystem;
-        const emptyCellFill: ZRColor = ecModel.get('backgroundColor') || tokens.color.neutral00;
+        const emptyCellFill: ZRColor = ecModel.get('backgroundColor') || tokens.color.background;
         if (coordSys) {
             // geo does not support incremental rendering?
             if (isGeoCoordSys(coordSys)) {

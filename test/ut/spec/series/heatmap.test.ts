@@ -19,6 +19,7 @@
 
 import { EChartsType } from '@/src/echarts';
 import { createChart, getGraphicElements } from '../../core/utHelper';
+import tokens from '@/src/visual/tokens';
 
 describe('heatmap', function () {
     let chart: EChartsType;
@@ -78,5 +79,49 @@ describe('heatmap', function () {
 
         expect(rects).toHaveLength(3);
         expect(rects.filter(rect => (rect as any).style.fill === '#fff')).toHaveLength(2);
+    });
+
+    it('should use token background for empty cells by default', function () {
+        chart.setOption({
+            animation: false,
+            visualMap: {
+                min: 0,
+                max: 10,
+                show: false
+            },
+            grid: {
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: 20
+            },
+            xAxis: {
+                type: 'category',
+                data: ['a', 'b'],
+                splitArea: {
+                    show: true
+                }
+            },
+            yAxis: {
+                type: 'category',
+                data: ['row'],
+                splitArea: {
+                    show: true
+                }
+            },
+            series: [{
+                type: 'heatmap',
+                data: [
+                    [0, 0, 8],
+                    [1, 0, '']
+                ]
+            }]
+        }, true);
+
+        const rects = getGraphicElements(chart, 'series')
+            .filter(el => el.type === 'rect');
+
+        expect(rects).toHaveLength(2);
+        expect(rects.filter(rect => (rect as any).style.fill === tokens.color.background)).toHaveLength(1);
     });
 });
