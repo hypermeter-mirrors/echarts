@@ -6,6 +6,16 @@ Apache ECharts is a TypeScript-first charting library. Most runtime code lives i
 
 One thing worth knowing early is that this repo is assembled through explicit registration and curated entry files. New runtime code often needs to be connected not only in its local module, but also through public exports or bundle entry files before it becomes part of a user-facing build.
 
+## Contributor Docs
+
+When a task touches contribution workflow, prefer the repo's own contributor-facing documents over this summary:
+
+- `CONTRIBUTING.md` for general contribution guidance
+- `.github/pull_request_template.md` for PR structure
+- `.github/workflows/` for CI expectations
+
+This file is only a short orientation note. If there is any conflict, the repo's dedicated contributor docs should win.
+
 ## Project Layout
 
 - `src/`: built-in charts, components, coordinate systems, models, renderers, features, themes, and i18n source
