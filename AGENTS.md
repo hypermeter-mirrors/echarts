@@ -12,6 +12,8 @@ When a task touches contribution workflow, prefer the repo's own contributor-fac
 
 - `CONTRIBUTING.md` for general contribution guidance
 - `https://github.com/apache/echarts/wiki/How-to-make-a-pull-request` for PR workflow, test expectations, and git message conventions
+- `https://github.com/apache/echarts/wiki/How-to-setup-the-dev-environment` for local setup and zrender-linked development
+- `https://github.com/apache/echarts/wiki/Security-Checklist-for-Code-Contributors` for security-sensitive API and API-design checks
 - `.github/pull_request_template.md` for PR structure
 - `.github/workflows/` for CI expectations
 
@@ -22,6 +24,8 @@ A few stable rules from the PR wiki are especially worth keeping in mind:
 - In non-release PRs, avoid committing `dist/`, `i18n/`, and `ssr/client/dist/`.
 - Follow the repo's PR template when opening or updating a pull request.
 - Git messages follow the repo convention: `<type>(<scope>): <subject>. close #<issue_id>`, with the issue-closing suffix omitted when there is no related issue.
+- If you need to work on linked `zrender` code, the dev-environment wiki recommends using an absolute symlink at `node_modules/zrender` instead of `npm link`, because the watch flow depends on that setup.
+- Be cautious with security-sensitive web APIs such as `innerHTML`, arbitrary DOM selectors, `eval`-like execution, raw style injection, and navigation-related APIs. If a feature must allow that kind of behavior, the security checklist expects clear documentation warnings.
 
 ## Project Layout
 
