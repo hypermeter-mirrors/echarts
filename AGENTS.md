@@ -11,10 +11,17 @@ One thing worth knowing early is that this repo is assembled through explicit re
 When a task touches contribution workflow, prefer the repo's own contributor-facing documents over this summary:
 
 - `CONTRIBUTING.md` for general contribution guidance
+- `https://github.com/apache/echarts/wiki/How-to-make-a-pull-request` for PR workflow, test expectations, and git message conventions
 - `.github/pull_request_template.md` for PR structure
 - `.github/workflows/` for CI expectations
 
 This file is only a short orientation note. If there is any conflict, the repo's dedicated contributor docs should win.
+
+A few stable rules from the PR wiki are especially worth keeping in mind:
+
+- In non-release PRs, avoid committing `dist/`, `i18n/`, and `ssr/client/dist/`.
+- Follow the repo's PR template when opening or updating a pull request.
+- Git messages follow the repo convention: `<type>(<scope>): <subject>. close #<issue_id>`, with the issue-closing suffix omitted when there is no related issue.
 
 ## Project Layout
 
