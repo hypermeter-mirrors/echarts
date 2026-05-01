@@ -17,7 +17,7 @@
 * under the License.
 */
 
-import { extend, retrieve3 } from 'zrender/src/core/util';
+import { extend, isNumber, retrieve3 } from 'zrender/src/core/util';
 import * as graphic from '../../util/graphic';
 import SeriesData from '../../data/SeriesData';
 import { getSectorCornerRadius } from '../helper/sectorHelper';
@@ -28,6 +28,8 @@ import { getLabelStatesModels, setLabelStyle } from '../../label/labelStyle';
 import type { BuiltinTextPosition } from 'zrender/src/core/types';
 import { setStatesStylesFromModel, toggleHoverEmphasis } from '../../util/states';
 import { getECData } from '../../util/innerStore';
+
+const RADIAN = Math.PI / 180;
 
 export default class ChordPiece extends graphic.Sector {
 
@@ -174,10 +176,19 @@ export default class ChordPiece extends graphic.Sector {
             ? normalLabelModel.get('verticalAlign') || 'middle'
             : (dy > 0 ? 'top' : 'bottom');
 
+        let labelRotate = 0;
+        const rotate = normalLabelModel.get('rotate');
+        if (rotate === 'radial') {
+            labelRotate = dx < 0 ? -midAngle + Math.PI : -midAngle;
+        }
+        else if (isNumber(rotate)) {
+            labelRotate = rotate * RADIAN;
+        }
+
         label.attr({
             x: dx * r + layout.cx,
             y: dy * r + layout.cy,
-            rotation: 0,
+            rotation: labelRotate,
             style: {
                 align,
                 verticalAlign
@@ -185,4 +196,3 @@ export default class ChordPiece extends graphic.Sector {
         });
     }
 }
-
