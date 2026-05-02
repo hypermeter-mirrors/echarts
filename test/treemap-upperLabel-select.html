@@ -36,7 +36,7 @@ under the License.
             var chart = testHelper.create(echarts, 'main', {
                 title: [
                     'Treemap parent node should keep **select.itemStyle.color** with **upperLabel**',
-                    'This is the browser regression case for issue #21433'
+                    'Click Select Bob; the selected parent background should become yellow, not green.'
                 ],
                 height: 420,
                 option: {
@@ -72,26 +72,24 @@ under the License.
                     onclick: runAssertion
                 }]
             });
-            window.__treemapSelectChart = chart;
-
             setTimeout(runAssertion, 0);
 
             function runAssertion() {
                 chart.dispatchAction({
                     type: 'select',
                     seriesIndex: 0,
-                    dataIndex: 1
+                    dataIndex: 0
                 });
 
                 testHelper.printAssert(chart, function (assert) {
                     var seriesModel = chart.getModel().getSeriesByIndex(0);
                     var data = seriesModel.getData();
-                    var bg = data.getItemGraphicEl(1);
+                    var bg = data.getItemGraphicEl(0);
 
                     assert(bg);
                     assert(bg.states.select.style.fill === '#ff0');
+                    assert(data.getItemGraphicEl(1));
                     assert(data.getItemGraphicEl(2));
-                    assert(data.getItemGraphicEl(3));
                 });
             }
         });
