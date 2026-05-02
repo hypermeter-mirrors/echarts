@@ -32,11 +32,13 @@ describe('dataZoom/AxisProxy', function () {
         chart.dispose();
     });
 
-    it('keeps stacked line data when toolbox dataZoom injects value-axis filtering', function () {
+    function setToolboxStackedLineOption(filterMode?: 'filter' | 'weakFilter' | 'empty') {
         chart.setOption({
             toolbox: {
                 feature: {
-                    dataZoom: {}
+                    dataZoom: filterMode
+                        ? {filterMode: filterMode}
+                        : {}
                 }
             },
             xAxis: {
@@ -58,11 +60,60 @@ describe('dataZoom/AxisProxy', function () {
                 data: [1, 2, 3]
             }]
         });
+    }
+
+    it('keeps stacked line data when toolbox dataZoom injects value-axis filtering', function () {
+        setToolboxStackedLineOption();
 
         const data = getECModel(chart).getSeriesByIndex(1).getData();
         const stackResultDim = data.getCalculationInfo('stackResultDimension');
         expect(data.count()).toEqual(3);
         expect(data.get(stackResultDim, 0)).toEqual(101);
+    });
+
+    it('keeps stacked line data when toolbox dataZoom uses weakFilter', function () {
+        setToolboxStackedLineOption('weakFilter');
+
+        const data = getECModel(chart).getSeriesByIndex(1).getData();
+        const stackResultDim = data.getCalculationInfo('stackResultDimension');
+        expect(data.count()).toEqual(3);
+        expect(data.get(stackResultDim, 0)).toEqual(101);
+    });
+
+    it('empties stacked line data by stack result dimension', function () {
+        chart.setOption({
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: ['Mon', 'Tue', 'Wed']
+            },
+            yAxis: {
+                scale: true
+            },
+            dataZoom: {
+                yAxisIndex: 0,
+                filterMode: 'empty',
+                startValue: 102,
+                endValue: 103
+            },
+            series: [{
+                type: 'line',
+                stack: 'total',
+                data: [100, 100, 100]
+            }, {
+                type: 'line',
+                stack: 'total',
+                areaStyle: {},
+                data: [1, 2, 3]
+            }]
+        });
+
+        const data = getECModel(chart).getSeriesByIndex(1).getData();
+        const stackResultDim = data.getCalculationInfo('stackResultDimension');
+        expect(data.count()).toEqual(3);
+        expect(isNaN(data.get(stackResultDim, 0) as number)).toEqual(true);
+        expect(data.get(stackResultDim, 1)).toEqual(102);
+        expect(data.get(stackResultDim, 2)).toEqual(103);
     });
 
 });
