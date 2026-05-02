@@ -114,6 +114,8 @@ describe('dataZoom/AxisProxy', function () {
         expect(isNaN(data.get(stackResultDim, 0) as number)).toEqual(true);
         expect(data.get(stackResultDim, 1)).toEqual(102);
         expect(data.get(stackResultDim, 2)).toEqual(103);
+        expect(data.get('y', 1)).toEqual(2);
+        expect(data.get('y', 2)).toEqual(3);
     });
 
 });
