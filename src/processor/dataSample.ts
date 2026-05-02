@@ -21,6 +21,8 @@ import { StageHandler, SeriesOption, SeriesSamplingOptionMixin } from '../util/t
 import { Dictionary } from 'zrender/src/core/types';
 import SeriesModel from '../model/Series';
 import { isFunction, isString } from 'zrender/src/core/util';
+import type SeriesData from '../data/SeriesData';
+import type Axis from '../coord/Axis';
 
 
 type Sampler = (frame: ArrayLike<number>) => number;
@@ -72,6 +74,16 @@ const indexSampler = function (frame: ArrayLike<number>) {
     return Math.round(frame.length / 2);
 };
 
+function countDataInAxisExtent(data: SeriesData, baseAxis: Axis, baseDim: string) {
+    let count = 0;
+    data.each(baseDim, function (value: number) {
+        if (baseAxis.containData(value)) {
+            count++;
+        }
+    });
+    return count;
+}
+
 export default function dataSample(seriesType: string): StageHandler {
     return {
 
@@ -86,14 +98,15 @@ export default function dataSample(seriesType: string): StageHandler {
             const coordSys = seriesModel.coordinateSystem;
             const count = data.count();
             // Only cartesian2d support down sampling. Disable it when there is few data.
-            if (count > 10 && coordSys.type === 'cartesian2d' && sampling) {
+            if (count > 10 && coordSys.type === 'cartesian2d' && sampling && sampling !== 'none') {
                 const baseAxis = coordSys.getBaseAxis();
                 const valueAxis = coordSys.getOtherAxis(baseAxis);
                 const extent = baseAxis.getExtent();
                 const dpr = api.getDevicePixelRatio();
                 // Coordinste system has been resized
                 const size = Math.abs(extent[1] - extent[0]) * (dpr || 1);
-                const rate = Math.round(count / size);
+                const dataCount = countDataInAxisExtent(data, baseAxis, data.mapDimension(baseAxis.dim));
+                const rate = Math.round(dataCount / size);
 
                 if (isFinite(rate) && rate > 1) {
                     if (sampling === 'lttb') {
