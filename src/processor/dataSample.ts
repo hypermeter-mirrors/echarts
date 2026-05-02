@@ -76,8 +76,9 @@ const indexSampler = function (frame: ArrayLike<number>) {
 
 function countDataInAxisExtent(data: SeriesData, baseAxis: Axis, baseDim: string) {
     let count = 0;
+    const scale = baseAxis.scale;
     data.each(baseDim, function (value: number) {
-        if (baseAxis.containData(value)) {
+        if (scale.contain(value)) {
             count++;
         }
     });
@@ -105,6 +106,9 @@ export default function dataSample(seriesType: string): StageHandler {
                 const dpr = api.getDevicePixelRatio();
                 // Coordinste system has been resized
                 const size = Math.abs(extent[1] - extent[0]) * (dpr || 1);
+                if (count <= size) {
+                    return;
+                }
                 const dataCount = countDataInAxisExtent(data, baseAxis, data.mapDimension(baseAxis.dim));
                 const rate = Math.round(dataCount / size);
 
