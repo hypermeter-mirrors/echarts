@@ -188,9 +188,9 @@ export default class ChordPiece extends graphic.Sector {
         for (let i = 0; i < SPECIAL_STATES.length; i++) {
             const stateName = SPECIAL_STATES[i];
             const stateRotate = labelStateModels[stateName].getShallow('rotate');
-            if (stateRotate != null) {
-                label.ensureState(stateName).rotation = getLabelRotation(stateRotate, midAngle, dx);
-            }
+            label.ensureState(stateName).rotation = stateRotate == null
+                ? labelRotate
+                : getLabelRotation(stateRotate, midAngle, dx);
         }
 
         label.attr({

@@ -141,4 +141,55 @@ describe('series/chord', function () {
         expect(textContent.states.select.rotation).toBeCloseTo(Math.PI / 4);
     });
 
+    it('clears stale state label rotation on option update', function () {
+        const option = {
+            series: {
+                type: 'chord',
+                label: {
+                    show: true,
+                    rotate: 0
+                },
+                emphasis: {
+                    label: {
+                        rotate: 45
+                    }
+                },
+                data: [
+                    {name: 'a'},
+                    {name: 'b'}
+                ],
+                edges: [{
+                    source: 'a',
+                    target: 'b',
+                    value: 1
+                }]
+            }
+        };
+        chart.setOption(option);
+
+        let seriesModel = getECModel(chart).getSeriesByType('chord')[0] as ChordSeriesModel;
+        let textContent = seriesModel.getData().getItemGraphicEl(0).getTextContent();
+        const oldTextContent = textContent;
+
+        expect(textContent.states.emphasis.rotation).toBeCloseTo(Math.PI / 4);
+
+        chart.setOption({
+            series: {
+                ...option.series,
+                emphasis: {
+                    label: {
+                        rotate: null
+                    }
+                }
+            }
+        });
+
+        seriesModel = getECModel(chart).getSeriesByType('chord')[0] as ChordSeriesModel;
+        textContent = seriesModel.getData().getItemGraphicEl(0).getTextContent();
+
+        expect(textContent).toBe(oldTextContent);
+        expect(textContent.rotation).toBeCloseTo(0);
+        expect(textContent.states.emphasis.rotation).toBeCloseTo(0);
+    });
+
 });
