@@ -152,21 +152,21 @@ export interface ChordSeriesOption
     emphasis?: {
         focus?: Exclude<ChordNodeItemOption['emphasis'], undefined>['focus']
         scale?: boolean | number
-        label?: SeriesLabelOption
+        label?: ChordNodeLabelOption
         edgeLabel?: SeriesLabelOption
         itemStyle?: ItemStyleOption
         lineStyle?: LineStyleOption
     }
 
     blur?: {
-        label?: SeriesLabelOption
+        label?: ChordNodeLabelOption
         edgeLabel?: SeriesLabelOption
         itemStyle?: ItemStyleOption
         lineStyle?: LineStyleOption
     }
 
     select?: {
-        label?: SeriesLabelOption
+        label?: ChordNodeLabelOption
         edgeLabel?: SeriesLabelOption
         itemStyle?: ItemStyleOption
         lineStyle?: LineStyleOption

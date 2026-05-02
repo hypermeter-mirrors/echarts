@@ -65,4 +65,30 @@ describe('series/chord', function () {
         expect(textContent.rotation).toBeCloseTo(expectedRotation);
     });
 
+    it('converts numeric label rotation from degrees to radians', function () {
+        chart.setOption({
+            series: {
+                type: 'chord',
+                label: {
+                    show: true,
+                    rotate: 45
+                },
+                data: [
+                    {name: 'a'},
+                    {name: 'b'}
+                ],
+                edges: [{
+                    source: 'a',
+                    target: 'b',
+                    value: 1
+                }]
+            }
+        });
+
+        const seriesModel = getECModel(chart).getSeriesByType('chord')[0] as ChordSeriesModel;
+        const textContent = seriesModel.getData().getItemGraphicEl(0).getTextContent();
+
+        expect(textContent.rotation).toBeCloseTo(Math.PI / 4);
+    });
+
 });
