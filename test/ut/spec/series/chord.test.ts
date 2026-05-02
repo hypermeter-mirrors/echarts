@@ -189,7 +189,10 @@ describe('series/chord', function () {
 
         expect(textContent).toBe(oldTextContent);
         expect(textContent.rotation).toBeCloseTo(0);
-        expect(textContent.states.emphasis.rotation).toBeCloseTo(0);
+        expect(textContent.states.emphasis.rotation).toBeNull();
+
+        textContent.useState('emphasis', false, true);
+        expect(textContent.rotation).toBeCloseTo(0);
     });
 
 });
