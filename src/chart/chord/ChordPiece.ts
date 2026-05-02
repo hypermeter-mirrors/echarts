@@ -26,10 +26,17 @@ import type Model from '../../model/Model';
 import type { GraphNode } from '../../data/Graph';
 import { getLabelStatesModels, setLabelStyle } from '../../label/labelStyle';
 import type { BuiltinTextPosition } from 'zrender/src/core/types';
-import { setStatesStylesFromModel, toggleHoverEmphasis } from '../../util/states';
+import { setStatesStylesFromModel, SPECIAL_STATES, toggleHoverEmphasis } from '../../util/states';
 import { getECData } from '../../util/innerStore';
 
 const RADIAN = Math.PI / 180;
+
+function getLabelRotation(rotate: number | 'radial', midAngle: number, dx: number): number {
+    if (rotate === 'radial') {
+        return dx < 0 ? -midAngle + Math.PI : -midAngle;
+    }
+    return isNumber(rotate) ? rotate * RADIAN : 0;
+}
 
 export default class ChordPiece extends graphic.Sector {
 
@@ -176,13 +183,14 @@ export default class ChordPiece extends graphic.Sector {
             ? normalLabelModel.get('verticalAlign') || 'middle'
             : (dy > 0 ? 'top' : 'bottom');
 
-        let labelRotate = 0;
-        const rotate = normalLabelModel.get('rotate');
-        if (rotate === 'radial') {
-            labelRotate = dx < 0 ? -midAngle + Math.PI : -midAngle;
-        }
-        else if (isNumber(rotate)) {
-            labelRotate = rotate * RADIAN;
+        const labelRotate = getLabelRotation(normalLabelModel.get('rotate'), midAngle, dx);
+
+        for (let i = 0; i < SPECIAL_STATES.length; i++) {
+            const stateName = SPECIAL_STATES[i];
+            const stateRotate = labelStateModels[stateName].getShallow('rotate');
+            if (stateRotate != null) {
+                label.ensureState(stateName).rotation = getLabelRotation(stateRotate, midAngle, dx);
+            }
         }
 
         label.attr({

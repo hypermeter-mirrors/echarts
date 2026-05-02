@@ -91,4 +91,54 @@ describe('series/chord', function () {
         expect(textContent.rotation).toBeCloseTo(Math.PI / 4);
     });
 
+    it('applies state label rotation', function () {
+        chart.setOption({
+            series: {
+                type: 'chord',
+                startAngle: 0,
+                padAngle: 0,
+                label: {
+                    show: true,
+                    rotate: 0
+                },
+                emphasis: {
+                    label: {
+                        rotate: 'radial'
+                    }
+                },
+                blur: {
+                    label: {
+                        rotate: 30
+                    }
+                },
+                select: {
+                    label: {
+                        rotate: 45
+                    }
+                },
+                data: [
+                    {name: 'a'},
+                    {name: 'b'}
+                ],
+                edges: [{
+                    source: 'a',
+                    target: 'b',
+                    value: 1
+                }]
+            }
+        });
+
+        const seriesModel = getECModel(chart).getSeriesByType('chord')[0] as ChordSeriesModel;
+        const data = seriesModel.getData();
+        const textContent = data.getItemGraphicEl(0).getTextContent();
+        const layout = data.getItemLayout(0);
+        const midAngle = (layout.startAngle + layout.endAngle) / 2;
+        const expectedRotation = Math.cos(midAngle) < 0 ? -midAngle + Math.PI : -midAngle;
+
+        expect(textContent.rotation).toBeCloseTo(0);
+        expect(textContent.states.emphasis.rotation).toBeCloseTo(expectedRotation);
+        expect(textContent.states.blur.rotation).toBeCloseTo(Math.PI / 6);
+        expect(textContent.states.select.rotation).toBeCloseTo(Math.PI / 4);
+    });
+
 });
