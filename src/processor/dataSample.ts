@@ -77,11 +77,14 @@ const indexSampler = function (frame: ArrayLike<number>) {
 function countDataInAxisExtent(data: SeriesData, baseAxis: Axis, baseDim: string) {
     let count = 0;
     const scale = baseAxis.scale;
-    data.each(baseDim, function (value: number) {
+    const store = data.getStore();
+    const dimIdx = data.getDimensionIndex(baseDim);
+    for (let i = 0, len = data.count(); i < len; i++) {
+        const value = store.get(dimIdx, i) as number;
         if (scale.contain(value)) {
             count++;
         }
-    });
+    }
     return count;
 }
 
