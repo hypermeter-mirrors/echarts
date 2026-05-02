@@ -109,6 +109,9 @@ export default function dataSample(seriesType: string): StageHandler {
                 const dpr = api.getDevicePixelRatio();
                 // Coordinste system has been resized
                 const size = Math.abs(extent[1] - extent[0]) * (dpr || 1);
+                if (!isFinite(size) || size <= 0) {
+                    return;
+                }
                 if (count <= size) {
                     return;
                 }
