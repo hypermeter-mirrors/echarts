@@ -131,7 +131,11 @@ export default function dataSample(seriesType: string): StageHandler {
                 const baseDim = data.mapDimension(baseAxis.dim);
                 let dataCount = count;
                 if (baseDim != null) {
-                    if (!dataExtentInAxisExtent(data, baseAxis, baseDim)) {
+                    const rawData = seriesModel.getRawData();
+                    const rawCount = rawData.count();
+                    const extentData = count < rawCount ? data : rawData;
+                    const extentBaseDim = count < rawCount ? baseDim : rawData.mapDimension(baseAxis.dim);
+                    if (extentBaseDim == null || !dataExtentInAxisExtent(extentData, baseAxis, extentBaseDim)) {
                         dataCount = countDataInAxisExtent(data, baseAxis, baseDim);
                     }
                 }
