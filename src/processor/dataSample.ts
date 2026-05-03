@@ -79,6 +79,9 @@ function countDataInAxisExtent(data: SeriesData, baseAxis: Axis, baseDim: string
     const scale = baseAxis.scale;
     const store = data.getStore();
     const dimIdx = data.getDimensionIndex(baseDim);
+    if (dimIdx < 0) {
+        return data.count();
+    }
     for (let i = 0, len = data.count(); i < len; i++) {
         const value = store.get(dimIdx, i) as number;
         if (scale.contain(value)) {
@@ -86,6 +89,16 @@ function countDataInAxisExtent(data: SeriesData, baseAxis: Axis, baseDim: string
         }
     }
     return count;
+}
+
+function dataExtentInAxisExtent(data: SeriesData, baseAxis: Axis, baseDim: string) {
+    const dimIdx = data.getDimensionIndex(baseDim);
+    if (dimIdx < 0) {
+        return false;
+    }
+    const scale = baseAxis.scale;
+    const dataExtent = data.getApproximateExtent(baseDim);
+    return scale.contain(dataExtent[0]) && scale.contain(dataExtent[1]);
 }
 
 export default function dataSample(seriesType: string): StageHandler {
@@ -115,7 +128,14 @@ export default function dataSample(seriesType: string): StageHandler {
                 if (count <= size) {
                     return;
                 }
-                const dataCount = countDataInAxisExtent(data, baseAxis, data.mapDimension(baseAxis.dim));
+                const baseDim = data.mapDimension(baseAxis.dim);
+                let dataCount = count;
+                if (baseDim != null) {
+                    const rawCount = seriesModel.getRawData().count();
+                    if (count >= rawCount || !dataExtentInAxisExtent(data, baseAxis, baseDim)) {
+                        dataCount = countDataInAxisExtent(data, baseAxis, baseDim);
+                    }
+                }
                 const rate = Math.round(dataCount / size);
 
                 if (isFinite(rate) && rate > 1) {
