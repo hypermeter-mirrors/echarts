@@ -106,17 +106,14 @@ export default function dataStack(ecModel: GlobalModel) {
 }
 
 function shouldNormalizeStack(stackInfoList: StackInfo[]) {
-    let hasStackNormalize = false;
-
     for (let i = 0; i < stackInfoList.length; i++) {
         const seriesModel = stackInfoList[i].seriesModel;
-        if (seriesModel.type !== 'series.line') {
+        if (seriesModel.type !== 'series.line' || !seriesModel.get('stackNormalize')) {
             return false;
         }
-        hasStackNormalize = hasStackNormalize || !!seriesModel.get('stackNormalize');
     }
 
-    return hasStackNormalize;
+    return stackInfoList.length > 0;
 }
 
 function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
