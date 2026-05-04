@@ -107,7 +107,7 @@ export interface TreeSeriesOption extends
     nodeScaleRatio?: number
 
     /**
-     * The orient of orthoginal layout, can be setted to 'LR', 'TB', 'RL', 'BT'.
+     * The orient of orthogonal layout, can be setted to 'LR', 'TB', 'RL', 'BT'.
      * and the backward compatibility configuration 'horizontal = LR', 'vertical = TB'.
      * 'center' puts the root in the center and lays out root children to both left and right sides.
      */
