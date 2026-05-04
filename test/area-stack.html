@@ -759,6 +759,20 @@ under the License.
 
             require(['echarts'], function (echarts) {
 
+                var xAxisData = [];
+                var directData = [];
+                var emailData = [];
+                var adsData = [];
+                var searchData = [];
+
+                for (var i = 0; i < 100; i++) {
+                    xAxisData.push('Day ' + (i + 1));
+                    directData.push(Math.round(28 + Math.sin(i / 5) * 12 + (i % 9)));
+                    emailData.push(Math.round(24 + Math.cos(i / 7) * 10 + (i % 7)));
+                    adsData.push(Math.round(20 + Math.sin(i / 9 + 1) * 8 + (i % 5) * 2));
+                    searchData.push(Math.round(30 + Math.cos(i / 6 + 2) * 14 + (i % 11)));
+                }
+
                 var option = {
                     legend: {
                         top: 25
@@ -775,7 +789,7 @@ under the License.
                     xAxis: {
                         type: 'category',
                         boundaryGap: false,
-                        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+                        data: xAxisData
                     },
                     yAxis: {
                         type: 'value',
@@ -790,7 +804,7 @@ under the License.
                             stackNormalize: true,
                             areaStyle: {},
                             symbol: 'none',
-                            data: [10, 30, 20, 40, 25]
+                            data: directData
                         },
                         {
                             name: 'Email',
@@ -799,7 +813,7 @@ under the License.
                             stackNormalize: true,
                             areaStyle: {},
                             symbol: 'none',
-                            data: [20, 10, 30, 20, 25]
+                            data: emailData
                         },
                         {
                             name: 'Ads',
@@ -808,7 +822,7 @@ under the License.
                             stackNormalize: true,
                             areaStyle: {},
                             symbol: 'none',
-                            data: [30, 40, 10, 20, 25]
+                            data: adsData
                         },
                         {
                             name: 'Search',
@@ -817,7 +831,7 @@ under the License.
                             stackNormalize: true,
                             areaStyle: {},
                             symbol: 'none',
-                            data: [40, 20, 40, 20, 25]
+                            data: searchData
                         }
                     ]
                 };
