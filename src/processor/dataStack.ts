@@ -17,7 +17,7 @@
 * under the License.
 */
 
-import {createHashMap, each} from 'zrender/src/core/util';
+import {createHashMap, each, HashMap} from 'zrender/src/core/util';
 import GlobalModel from '../model/Global';
 import SeriesModel from '../model/Series';
 import { SeriesOption, SeriesStackOptionMixin } from '../util/types';
@@ -41,6 +41,19 @@ type StackInfo = Pick<
     data: SeriesData
     seriesModel: SeriesModel<StackSeriesOption>
 };
+
+interface StackTotal {
+    all: number
+    positive: number
+    negative: number
+}
+
+type StackTotalMap = HashMap<StackTotal, string | number>;
+
+interface StackTotalMaps {
+    byIndex: StackTotalMap
+    byDimension: StackTotalMap
+}
 
 // (1) [Caution]: the logic is correct based on the premises:
 //     data processing stage is blocked in stream.
@@ -117,6 +130,8 @@ function shouldNormalizeStack(stackInfoList: StackInfo[]) {
 }
 
 function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
+    const stackTotalMaps = normalizeStack ? calculateStackTotalMaps(stackInfoList) : null;
+
     each(stackInfoList, function (targetStackInfo, idxInStack) {
         const resultVal: number[] = [];
         const resultNaN = [NaN, NaN];
@@ -129,7 +144,7 @@ function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
         // depending on legend selection.
         targetData.modify(dims, function (v0, v1, dataIndex) {
             let sum = normalizeStack
-                ? normalizeStackValue(stackInfoList, targetStackInfo, dataIndex, stackStrategy)
+                ? normalizeStackValue(stackTotalMaps!, targetStackInfo, dataIndex, stackStrategy)
                 : targetData.get(targetStackInfo.stackedDimension, dataIndex) as number;
 
             // Consider `connectNulls` of line area, if value is NaN, stackedOver
@@ -184,8 +199,56 @@ function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
     });
 }
 
+function calculateStackTotalMaps(stackInfoList: StackInfo[]) {
+    const stackTotalMaps: StackTotalMaps = {
+        byIndex: createHashMap<StackTotal, string | number>(),
+        byDimension: createHashMap<StackTotal, string | number>()
+    };
+
+    for (let i = 0; i < stackInfoList.length; i++) {
+        const stackInfo = stackInfoList[i];
+        const data = stackInfo.data;
+
+        for (let dataIndex = 0, len = data.count(); dataIndex < len; dataIndex++) {
+            const value = data.get(stackInfo.stackedDimension, dataIndex) as number;
+
+            if (isNaN(value)) {
+                continue;
+            }
+
+            addStackTotal(stackTotalMaps.byIndex, data.getRawIndex(dataIndex), value);
+
+            if (stackInfo.stackedByDimension) {
+                addStackTotal(
+                    stackTotalMaps.byDimension,
+                    data.get(stackInfo.stackedByDimension, dataIndex) as number,
+                    value
+                );
+            }
+        }
+    }
+
+    return stackTotalMaps;
+}
+
+function addStackTotal(stackTotalMap: StackTotalMap, key: string | number, value: number) {
+    const total = stackTotalMap.get(key) || stackTotalMap.set(key, {
+        all: 0,
+        positive: 0,
+        negative: 0
+    });
+
+    total.all = addSafe(total.all, value);
+    if (value > 0) {
+        total.positive = addSafe(total.positive, value);
+    }
+    else if (value < 0) {
+        total.negative = addSafe(total.negative, value);
+    }
+}
+
 function normalizeStackValue(
-    stackInfoList: StackInfo[],
+    stackTotalMaps: StackTotalMaps,
     targetStackInfo: StackInfo,
     dataIndex: number,
     stackStrategy: StackSeriesOption['stackStrategy']
@@ -196,41 +259,33 @@ function normalizeStackValue(
         return NaN;
     }
 
-    const total = getStackTotal(stackInfoList, targetStackInfo, dataIndex, rawValue, stackStrategy);
+    const stackTotalMap = targetStackInfo.isStackedByIndex
+        ? stackTotalMaps.byIndex
+        : stackTotalMaps.byDimension;
+    const key = targetStackInfo.isStackedByIndex
+        ? targetStackInfo.data.getRawIndex(dataIndex)
+        : targetStackInfo.data.get(targetStackInfo.stackedByDimension, dataIndex) as number;
+    const totalInfo = stackTotalMap.get(key);
+    const total = totalInfo && getStackTotal(totalInfo, rawValue, stackStrategy);
     return total ? rawValue / Math.abs(total) : 0;
 }
 
 function getStackTotal(
-    stackInfoList: StackInfo[],
-    targetStackInfo: StackInfo,
-    dataIndex: number,
+    totalInfo: StackTotal,
     targetValue: number,
     stackStrategy: StackSeriesOption['stackStrategy']
 ) {
-    const targetData = targetStackInfo.data;
-    const isStackedByIndex = targetStackInfo.isStackedByIndex;
-    let byValue: number;
-    let total = 0;
-
-    if (!isStackedByIndex) {
-        byValue = targetData.get(targetStackInfo.stackedByDimension, dataIndex) as number;
+    if (stackStrategy === 'all') {
+        return totalInfo.all;
+    }
+    else if (stackStrategy === 'positive') {
+        return totalInfo.positive;
+    }
+    else if (stackStrategy === 'negative') {
+        return totalInfo.negative;
     }
 
-    for (let i = 0; i < stackInfoList.length; i++) {
-        const stackInfo = stackInfoList[i];
-        const rawIndex = isStackedByIndex
-            ? targetData.getRawIndex(dataIndex)
-            : stackInfo.data.rawIndexOf(stackInfo.stackedByDimension, byValue);
-
-        if (rawIndex >= 0) {
-            const value = stackInfo.data.getByRawIndex(stackInfo.stackedDimension, rawIndex) as number;
-            if (!isNaN(value) && isStackedValueInStrategy(value, targetValue, stackStrategy)) {
-                total = addSafe(total, value);
-            }
-        }
-    }
-
-    return total;
+    return targetValue >= 0 ? totalInfo.positive : totalInfo.negative;
 }
 
 function isStackedValueInStrategy(

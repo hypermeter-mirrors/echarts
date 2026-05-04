@@ -103,4 +103,31 @@ describe('series.line stack', function () {
         expect(getStackResultValue(chart, 0, 0)).toBe(1);
         expect(getStackResultValue(chart, 1, 0)).toBe(4);
     });
+
+    it('keeps regular stacked values when only part of the stack enables stackNormalize', function () {
+        chart.setOption({
+            xAxis: {
+                data: ['A']
+            },
+            yAxis: {},
+            series: [
+                {
+                    type: 'line',
+                    stack: 'total',
+                    stackNormalize: true,
+                    areaStyle: {},
+                    data: [1]
+                },
+                {
+                    type: 'line',
+                    stack: 'total',
+                    areaStyle: {},
+                    data: [3]
+                }
+            ]
+        });
+
+        expect(getStackResultValue(chart, 0, 0)).toBe(1);
+        expect(getStackResultValue(chart, 1, 0)).toBe(4);
+    });
 });
