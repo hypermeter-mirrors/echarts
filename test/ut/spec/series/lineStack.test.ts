@@ -157,6 +157,84 @@ describe('series.line stack', function () {
         expect(getStackResultValue(chart, 2, 1)).toBeCloseTo(-1);
     });
 
+    it('normalizes stacked values with positive strategy', function () {
+        chart.setOption({
+            xAxis: {
+                data: ['A']
+            },
+            yAxis: {},
+            series: [
+                {
+                    type: 'line',
+                    stack: 'total',
+                    stackStrategy: 'positive',
+                    stackNormalize: true,
+                    areaStyle: {},
+                    data: [-1]
+                },
+                {
+                    type: 'line',
+                    stack: 'total',
+                    stackStrategy: 'positive',
+                    stackNormalize: true,
+                    areaStyle: {},
+                    data: [2]
+                },
+                {
+                    type: 'line',
+                    stack: 'total',
+                    stackStrategy: 'positive',
+                    stackNormalize: true,
+                    areaStyle: {},
+                    data: [3]
+                }
+            ]
+        });
+
+        expect(getStackResultValue(chart, 0, 0)).toBeCloseTo(-0.2);
+        expect(getStackResultValue(chart, 1, 0)).toBeCloseTo(0.4);
+        expect(getStackResultValue(chart, 2, 0)).toBeCloseTo(1);
+    });
+
+    it('normalizes stacked values with negative strategy', function () {
+        chart.setOption({
+            xAxis: {
+                data: ['A']
+            },
+            yAxis: {},
+            series: [
+                {
+                    type: 'line',
+                    stack: 'total',
+                    stackStrategy: 'negative',
+                    stackNormalize: true,
+                    areaStyle: {},
+                    data: [1]
+                },
+                {
+                    type: 'line',
+                    stack: 'total',
+                    stackStrategy: 'negative',
+                    stackNormalize: true,
+                    areaStyle: {},
+                    data: [-2]
+                },
+                {
+                    type: 'line',
+                    stack: 'total',
+                    stackStrategy: 'negative',
+                    stackNormalize: true,
+                    areaStyle: {},
+                    data: [-3]
+                }
+            ]
+        });
+
+        expect(getStackResultValue(chart, 0, 0)).toBeCloseTo(0.2);
+        expect(getStackResultValue(chart, 1, 0)).toBeCloseTo(-0.4);
+        expect(getStackResultValue(chart, 2, 0)).toBeCloseTo(-1);
+    });
+
     it('keeps regular stacked values when stackNormalize is not enabled', function () {
         chart.setOption({
             xAxis: {

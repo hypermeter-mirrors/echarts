@@ -49,6 +49,7 @@ interface StackTotal {
 }
 
 type StackTotalMap = HashMap<StackTotal, string | number>;
+type StackTotalKey = string | number;
 
 interface StackTotalMaps {
     byIndex?: StackTotalMap
@@ -223,20 +224,18 @@ function calculateStackTotalMap(stackInfoList: StackInfo[], isStackedByIndex: bo
                 continue;
             }
 
-            addStackTotal(
-                stackTotalMap,
-                isStackedByIndex
-                    ? data.getRawIndex(dataIndex)
-                    : data.get(stackInfo.stackedByDimension, dataIndex) as number,
-                value
-            );
+            const key: StackTotalKey = isStackedByIndex
+                ? data.getRawIndex(dataIndex)
+                : data.get(stackInfo.stackedByDimension, dataIndex) as StackTotalKey;
+
+            addStackTotal(stackTotalMap, key, value);
         }
     }
 
     return stackTotalMap;
 }
 
-function addStackTotal(stackTotalMap: StackTotalMap, key: string | number, value: number) {
+function addStackTotal(stackTotalMap: StackTotalMap, key: StackTotalKey, value: number) {
     const total = stackTotalMap.get(key) || stackTotalMap.set(key, {
         all: 0,
         positive: 0,
@@ -266,9 +265,9 @@ function normalizeStackValue(
     }
 
     const stackTotalMap = getStackTotalMap(stackInfoList, stackTotalMaps, targetStackInfo.isStackedByIndex);
-    const key = targetStackInfo.isStackedByIndex
+    const key: StackTotalKey = targetStackInfo.isStackedByIndex
         ? targetStackInfo.data.getRawIndex(dataIndex)
-        : targetStackInfo.data.get(targetStackInfo.stackedByDimension, dataIndex) as number;
+        : targetStackInfo.data.get(targetStackInfo.stackedByDimension, dataIndex) as StackTotalKey;
     const totalInfo = stackTotalMap.get(key);
     const total = totalInfo && getStackTotal(totalInfo, rawValue, stackStrategy);
     return total ? rawValue / Math.abs(total) : 0;
