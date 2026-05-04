@@ -51,8 +51,8 @@ interface StackTotal {
 type StackTotalMap = HashMap<StackTotal, string | number>;
 
 interface StackTotalMaps {
-    byIndex: StackTotalMap
-    byDimension: StackTotalMap
+    byIndex?: StackTotalMap
+    byDimension?: StackTotalMap
 }
 
 // (1) [Caution]: the logic is correct based on the premises:
@@ -130,7 +130,7 @@ function shouldNormalizeStack(stackInfoList: StackInfo[]) {
 }
 
 function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
-    const stackTotalMaps = normalizeStack ? calculateStackTotalMaps(stackInfoList) : null;
+    const stackTotalMaps: StackTotalMaps = {};
 
     each(stackInfoList, function (targetStackInfo, idxInStack) {
         const resultVal: number[] = [];
@@ -144,7 +144,7 @@ function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
         // depending on legend selection.
         targetData.modify(dims, function (v0, v1, dataIndex) {
             let sum = normalizeStack
-                ? normalizeStackValue(stackTotalMaps!, targetStackInfo, dataIndex, stackStrategy)
+                ? normalizeStackValue(stackInfoList, stackTotalMaps, targetStackInfo, dataIndex, stackStrategy)
                 : targetData.get(targetStackInfo.stackedDimension, dataIndex) as number;
 
             // Consider `connectNulls` of line area, if value is NaN, stackedOver
@@ -199,11 +199,18 @@ function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
     });
 }
 
-function calculateStackTotalMaps(stackInfoList: StackInfo[]) {
-    const stackTotalMaps: StackTotalMaps = {
-        byIndex: createHashMap<StackTotal, string | number>(),
-        byDimension: createHashMap<StackTotal, string | number>()
-    };
+function getStackTotalMap(
+    stackInfoList: StackInfo[],
+    stackTotalMaps: StackTotalMaps,
+    isStackedByIndex: boolean
+) {
+    const totalMapKey = isStackedByIndex ? 'byIndex' : 'byDimension';
+    return stackTotalMaps[totalMapKey]
+        || (stackTotalMaps[totalMapKey] = calculateStackTotalMap(stackInfoList, isStackedByIndex));
+}
+
+function calculateStackTotalMap(stackInfoList: StackInfo[], isStackedByIndex: boolean) {
+    const stackTotalMap = createHashMap<StackTotal, string | number>();
 
     for (let i = 0; i < stackInfoList.length; i++) {
         const stackInfo = stackInfoList[i];
@@ -216,19 +223,17 @@ function calculateStackTotalMaps(stackInfoList: StackInfo[]) {
                 continue;
             }
 
-            addStackTotal(stackTotalMaps.byIndex, data.getRawIndex(dataIndex), value);
-
-            if (stackInfo.stackedByDimension) {
-                addStackTotal(
-                    stackTotalMaps.byDimension,
-                    data.get(stackInfo.stackedByDimension, dataIndex) as number,
-                    value
-                );
-            }
+            addStackTotal(
+                stackTotalMap,
+                isStackedByIndex
+                    ? data.getRawIndex(dataIndex)
+                    : data.get(stackInfo.stackedByDimension, dataIndex) as number,
+                value
+            );
         }
     }
 
-    return stackTotalMaps;
+    return stackTotalMap;
 }
 
 function addStackTotal(stackTotalMap: StackTotalMap, key: string | number, value: number) {
@@ -248,6 +253,7 @@ function addStackTotal(stackTotalMap: StackTotalMap, key: string | number, value
 }
 
 function normalizeStackValue(
+    stackInfoList: StackInfo[],
     stackTotalMaps: StackTotalMaps,
     targetStackInfo: StackInfo,
     dataIndex: number,
@@ -259,9 +265,7 @@ function normalizeStackValue(
         return NaN;
     }
 
-    const stackTotalMap = targetStackInfo.isStackedByIndex
-        ? stackTotalMaps.byIndex
-        : stackTotalMaps.byDimension;
+    const stackTotalMap = getStackTotalMap(stackInfoList, stackTotalMaps, targetStackInfo.isStackedByIndex);
     const key = targetStackInfo.isStackedByIndex
         ? targetStackInfo.data.getRawIndex(dataIndex)
         : targetStackInfo.data.get(targetStackInfo.stackedByDimension, dataIndex) as number;
