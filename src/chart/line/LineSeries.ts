@@ -113,6 +113,9 @@ export interface LineSeriesOption extends SeriesOption<LineStateOption<CallbackD
 
     connectNulls?: boolean
 
+    // Normalize stacked line values by the stack total.
+    stackNormalize?: boolean
+
     showSymbol?: boolean
     // false | 'auto': follow the label interval strategy.
     // true: show all symbols.

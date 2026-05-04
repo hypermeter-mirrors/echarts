@@ -24,8 +24,14 @@ import { SeriesOption, SeriesStackOptionMixin } from '../util/types';
 import SeriesData, { DataCalculationInfo } from '../data/SeriesData';
 import { addSafe } from '../util/number';
 
+interface StackNormalizeOption {
+    stackNormalize?: boolean
+}
+
+type StackSeriesOption = SeriesOption & SeriesStackOptionMixin & StackNormalizeOption;
+
 type StackInfo = Pick<
-    DataCalculationInfo<SeriesOption & SeriesStackOptionMixin>,
+    DataCalculationInfo<StackSeriesOption>,
     'stackedDimension'
     | 'isStackedByIndex'
     | 'stackedByDimension'
@@ -33,7 +39,7 @@ type StackInfo = Pick<
     | 'stackedOverDimension'
 > & {
     data: SeriesData
-    seriesModel: SeriesModel<SeriesOption & SeriesStackOptionMixin>
+    seriesModel: SeriesModel<StackSeriesOption>
 };
 
 // (1) [Caution]: the logic is correct based on the premises:
@@ -43,7 +49,7 @@ type StackInfo = Pick<
 //     Should be executed after series is filtered and before stack calculation.
 export default function dataStack(ecModel: GlobalModel) {
     const stackInfoMap = createHashMap<StackInfo[]>();
-    ecModel.eachSeries(function (seriesModel: SeriesModel<SeriesOption & SeriesStackOptionMixin>) {
+    ecModel.eachSeries(function (seriesModel: SeriesModel<StackSeriesOption>) {
         const stack = seriesModel.get('stack');
         // Compatible: when `stack` is set as '', do not stack.
         if (stack) {
@@ -95,11 +101,25 @@ export default function dataStack(ecModel: GlobalModel) {
         });
 
         // Calculate stack values
-        calculateStack(stackInfoList);
+        calculateStack(stackInfoList, shouldNormalizeStack(stackInfoList));
     });
 }
 
-function calculateStack(stackInfoList: StackInfo[]) {
+function shouldNormalizeStack(stackInfoList: StackInfo[]) {
+    let hasStackNormalize = false;
+
+    for (let i = 0; i < stackInfoList.length; i++) {
+        const seriesModel = stackInfoList[i].seriesModel;
+        if (seriesModel.type !== 'series.line') {
+            return false;
+        }
+        hasStackNormalize = hasStackNormalize || !!seriesModel.get('stackNormalize');
+    }
+
+    return hasStackNormalize;
+}
+
+function calculateStack(stackInfoList: StackInfo[], normalizeStack: boolean) {
     each(stackInfoList, function (targetStackInfo, idxInStack) {
         const resultVal: number[] = [];
         const resultNaN = [NaN, NaN];
@@ -111,7 +131,9 @@ function calculateStack(stackInfoList: StackInfo[]) {
         // Should not write on raw data, because stack series model list changes
         // depending on legend selection.
         targetData.modify(dims, function (v0, v1, dataIndex) {
-            let sum = targetData.get(targetStackInfo.stackedDimension, dataIndex) as number;
+            let sum = normalizeStack
+                ? normalizeStackValue(stackInfoList, targetStackInfo, dataIndex, stackStrategy)
+                : targetData.get(targetStackInfo.stackedDimension, dataIndex) as number;
 
             // Consider `connectNulls` of line area, if value is NaN, stackedOver
             // should also be NaN, to draw a appropriate belt area.
@@ -146,13 +168,7 @@ function calculateStack(stackInfoList: StackInfo[]) {
                     ) as number;
 
                     // Considering positive stack, negative stack and empty data
-                    if (
-                        stackStrategy === 'all' // single stack group
-                        || (stackStrategy === 'positive' && val > 0)
-                        || (stackStrategy === 'negative' && val < 0)
-                        || (stackStrategy === 'samesign' && sum >= 0 && val > 0) // All positive stack
-                        || (stackStrategy === 'samesign' && sum <= 0 && val < 0) // All negative stack
-                    ) {
+                    if (isStackedValueInStrategy(val, sum, stackStrategy)) {
                         // The sum has to be very small to be affected by the
                         // floating arithmetic problem. An incorrect result will probably
                         // cause axis min/max to be filtered incorrectly.
@@ -169,4 +185,65 @@ function calculateStack(stackInfoList: StackInfo[]) {
             return resultVal;
         });
     });
+}
+
+function normalizeStackValue(
+    stackInfoList: StackInfo[],
+    targetStackInfo: StackInfo,
+    dataIndex: number,
+    stackStrategy: StackSeriesOption['stackStrategy']
+) {
+    const rawValue = targetStackInfo.data.get(targetStackInfo.stackedDimension, dataIndex) as number;
+
+    if (isNaN(rawValue)) {
+        return NaN;
+    }
+
+    const total = getStackTotal(stackInfoList, targetStackInfo, dataIndex, rawValue, stackStrategy);
+    return total ? rawValue / Math.abs(total) : 0;
+}
+
+function getStackTotal(
+    stackInfoList: StackInfo[],
+    targetStackInfo: StackInfo,
+    dataIndex: number,
+    targetValue: number,
+    stackStrategy: StackSeriesOption['stackStrategy']
+) {
+    const targetData = targetStackInfo.data;
+    const isStackedByIndex = targetStackInfo.isStackedByIndex;
+    let byValue: number;
+    let total = 0;
+
+    if (!isStackedByIndex) {
+        byValue = targetData.get(targetStackInfo.stackedByDimension, dataIndex) as number;
+    }
+
+    for (let i = 0; i < stackInfoList.length; i++) {
+        const stackInfo = stackInfoList[i];
+        const rawIndex = isStackedByIndex
+            ? targetData.getRawIndex(dataIndex)
+            : stackInfo.data.rawIndexOf(stackInfo.stackedByDimension, byValue);
+
+        if (rawIndex >= 0) {
+            const value = stackInfo.data.getByRawIndex(stackInfo.stackedDimension, rawIndex) as number;
+            if (!isNaN(value) && isStackedValueInStrategy(value, targetValue, stackStrategy)) {
+                total = addSafe(total, value);
+            }
+        }
+    }
+
+    return total;
+}
+
+function isStackedValueInStrategy(
+    value: number,
+    targetValue: number,
+    stackStrategy: StackSeriesOption['stackStrategy']
+) {
+    return stackStrategy === 'all'
+        || (stackStrategy === 'positive' && value > 0)
+        || (stackStrategy === 'negative' && value < 0)
+        || (stackStrategy === 'samesign' && targetValue >= 0 && value > 0)
+        || (stackStrategy === 'samesign' && targetValue <= 0 && value < 0);
 }
