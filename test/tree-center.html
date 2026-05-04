@@ -26,23 +26,42 @@ under the License.
     </head>
     <body>
         <style>
-            html, body, #main {
+            html, body {
                 width: 100%;
-                height: 100%;
                 padding: 0;
                 margin: 0;
             }
+            body {
+                font-family: sans-serif;
+            }
+            .case-title {
+                height: 32px;
+                line-height: 32px;
+                padding-left: 16px;
+                font-size: 14px;
+                color: #555;
+                box-sizing: border-box;
+            }
+            .chart {
+                width: 100%;
+                height: 400px;
+            }
         </style>
-        <div id="main"></div>
+        <div class="case-title">orient: center, root children with explicit side</div>
+        <div id="main-explicit-side" class="chart"></div>
+        <div class="case-title">orient: center, single root expands to both sides automatically</div>
+        <div id="main-auto-side" class="chart"></div>
         <script>
             require(['echarts'], function (echarts) {
-                var chart = echarts.init(document.getElementById('main'));
+                var explicitSideChart = echarts.init(document.getElementById('main-explicit-side'));
+                var autoSideChart = echarts.init(document.getElementById('main-auto-side'));
 
                 window.onresize = function () {
-                    chart.resize();
+                    explicitSideChart.resize();
+                    autoSideChart.resize();
                 };
 
-                chart.setOption({
+                explicitSideChart.setOption({
                     series: [{
                         type: 'tree',
                         data: [{
@@ -107,6 +126,66 @@ under the License.
                         symbol: 'circle',
                         symbolSize: 10,
                         edgeShape: 'curve',
+                        itemStyle: {
+                            color: '#1b7ef2'
+                        },
+                        lineStyle: {
+                            color: '#6aa0e6',
+                            width: 1.5,
+                            curveness: 0.5
+                        },
+                        label: {
+                            fontSize: 14,
+                            color: '#222'
+                        }
+                    }]
+                });
+
+                autoSideChart.setOption({
+                    series: [{
+                        type: 'tree',
+                        data: [{
+                            name: 'Single Root',
+                            children: [{
+                                name: 'Discovery',
+                                children: [
+                                    { name: 'Research notes' },
+                                    { name: 'User interviews' },
+                                    { name: 'Problem framing' }
+                                ]
+                            }, {
+                                name: 'Design',
+                                children: [
+                                    { name: 'Information architecture' },
+                                    { name: 'Interaction model' },
+                                    { name: 'Visual system' }
+                                ]
+                            }, {
+                                name: 'Build',
+                                children: [
+                                    { name: 'Layout engine' },
+                                    { name: 'Rendering' },
+                                    { name: 'API surface' }
+                                ]
+                            }, {
+                                name: 'Verify',
+                                children: [
+                                    { name: 'Unit tests' },
+                                    { name: 'HTML case' },
+                                    { name: 'Screenshot review' }
+                                ]
+                            }]
+                        }],
+                        orient: 'center',
+                        expandAndCollapse: false,
+                        initialTreeDepth: -1,
+                        top: 20,
+                        bottom: 20,
+                        left: 220,
+                        right: 220,
+                        symbol: 'circle',
+                        symbolSize: 10,
+                        edgeShape: 'polyline',
                         itemStyle: {
                             color: '#1b7ef2'
                         },
